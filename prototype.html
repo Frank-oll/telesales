@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>客户电销记录</title>
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0071e3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="电销记录">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  .tag-btn { transition: background-color 0.18s ease; -webkit-tap-highlight-color: transparent; }
+  .tag-btn:hover { background-color: rgba(0,0,0,0.025); }
+  .tag-btn:active { background-color: rgba(0,0,0,0.06); }
+  .tag-btn:focus-visible { outline: 2px solid #0071e3; outline-offset: -3px; }
+  .stat-card { transition: all 0.3s; }
+  .pulse { animation: pulse 0.5s; }
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+
+  /* iOS-style 顶部胶囊 Toast */
+  .toast-container {
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+    z-index: 70; display: flex; flex-direction: column; gap: 8px;
+    align-items: center; pointer-events: none; max-width: 92vw;
+  }
+  .toast {
+    pointer-events: auto;
+    background: rgba(29, 29, 31, 0.92);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    color: #fff; padding: 10px 18px; border-radius: 999px;
+    font-size: 13px; font-weight: 500;
+    box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.35);
+    opacity: 0; transform: translateY(-10px) scale(0.96);
+    transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+    white-space: nowrap; max-width: 86vw; overflow: hidden; text-overflow: ellipsis;
+  }
+  .toast-show { opacity: 1; transform: translateY(0) scale(1); }
+  .toast-success { background: rgba(40, 167, 69, 0.95); }
+  .toast-warn { background: rgba(255, 149, 0, 0.95); color: #fff; }
+  .toast-error { background: rgba(255, 59, 48, 0.95); }
+
+  /* 弹窗入场动画 */
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  #formModal:not(.hidden) > div { animation: modalIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+  /* 打印导出:隐藏 dev nav 和操作按钮,保留汇总卡片 */
+  @media print {
+    body { background: #fff !important; }
+    .no-print { display: none !important; }
+    #summary.screen { padding: 0 !important; }
+    #exportArea { box-shadow: none !important; border: none !important; padding: 24px !important; }
+  }
+</style>
+</head>
+<body class="bg-[#f5f5f7] min-h-screen text-[#1d1d1f]">
+
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- ============== 屏 1：主工作台 ============== -->
+<div id="workspace" class="screen active px-4 sm:px-8 py-6 sm:py-10">
+  <div class="max-w-6xl mx-auto">
+    <!-- 顶部栏 -->
+    <div class="flex items-end justify-between mb-6 sm:mb-10 gap-3">
+      <div class="min-w-0">
+        <h1 class="text-[22px] sm:text-[28px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">客户电销记录</h1>
+        <p class="text-[12px] sm:text-[13px] text-[#86868b] mt-1.5">本次会话进行中</p>
+      </div>
+      <div class="flex gap-2 shrink-0">
+        <button onclick="showScreen('followups')" class="bg-white/80 backdrop-blur-xl ring-1 ring-black/[0.08] hover:bg-white text-[#1d1d1f] text-[13px] font-medium px-3 sm:px-4 py-2.5 rounded-full transition-colors flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span class="hidden sm:inline">跟进</span>
+        </button>
+        <button onclick="showScreen('history')" class="bg-white/80 backdrop-blur-xl ring-1 ring-black/[0.08] hover:bg-white text-[#1d1d1f] text-[13px] font-medium px-3 sm:px-4 py-2.5 rounded-full transition-colors flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span class="hidden sm:inline">历史</span>
+        </button>
+        <button onclick="endSession()" class="bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#006edb] text-white text-[13px] font-medium px-4 sm:px-5 py-2.5 rounded-full transition-colors whitespace-nowrap">
+          结束本次电销
+        </button>
+      </div>
+    </div>
+
+    <!-- 主体：左录入 + 右统计 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 items-stretch">
+      <!-- 左侧：标签录入区 -->
+      <div class="md:col-span-2 flex flex-col">
+        <div class="flex items-baseline justify-between mb-3 px-1">
+          <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold">本通电话结果</div>
+          <div class="text-[12px] text-[#86868b] tabular-nums">已打 <span id="totalCountInline" class="text-[#1d1d1f] font-semibold">0</span> 个电话</div>
+        </div>
+        <div class="bg-white/80 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] overflow-hidden flex-1 flex flex-col">
+          <button onclick="recordCall('hangup')" class="tag-btn flex-1 flex items-center justify-center text-center min-h-[96px]">
+            <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">暂无磁铁需求</span>
+          </button>
+          <div class="h-px bg-black/[0.06] mx-6"></div>
+          <button onclick="recordCall('unanswered')" class="tag-btn flex-1 flex items-center justify-center text-center min-h-[96px]">
+            <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">未接</span>
+          </button>
+          <div class="h-px bg-black/[0.06] mx-6"></div>
+          <button onclick="openForm('has_supplier')" class="tag-btn flex-1 flex items-center justify-center text-center min-h-[96px]">
+            <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">已有供应商</span>
+          </button>
+          <div class="h-px bg-black/[0.06] mx-6"></div>
+          <button onclick="openForm('pending_quote')" class="tag-btn flex-1 flex items-center justify-center text-center min-h-[96px]">
+            <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">待报价</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 右侧：实时统计 -->
+      <div class="md:col-span-1 flex flex-col gap-3">
+        <!-- 主指标 -->
+        <div class="bg-[#1d1d1f] rounded-[22px] p-6 text-white shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)]">
+          <div class="text-[11px] uppercase tracking-[0.1em] text-white/55 font-semibold">本次累计拨打</div>
+          <div id="totalCount" class="text-[56px] font-semibold mt-1 leading-none tracking-tight tabular-nums">0</div>
+          <div id="lastCall" class="text-[12px] text-white/50 mt-3">尚未拨打</div>
+        </div>
+
+        <!-- 明细 + 时间（合并） -->
+        <div class="bg-white/80 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] overflow-hidden flex-1">
+          <div class="px-5 pt-5 pb-3">
+            <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold mb-3">本次明细</div>
+            <div class="space-y-2.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[13px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-[#8e8e93]"></span>暂无磁铁需求</span>
+                <span id="hangupCount" class="text-[14px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-[13px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-[#ff9f0a]"></span>未接</span>
+                <span id="unansweredCount" class="text-[14px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-[13px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-[#0a84ff]"></span>已有供应商</span>
+                <span id="supplierCount" class="text-[14px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-[13px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-[#30d158]"></span>待报价</span>
+                <span id="quoteCount" class="text-[14px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="h-px bg-black/[0.06] mx-5"></div>
+          <div class="px-5 pt-3 pb-5">
+            <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold mb-3">营销质量</div>
+            <div class="space-y-2.5 text-[13px]">
+              <div class="flex justify-between items-baseline" title="本次接通的电话占总拨打的比例(总 − 未接)">
+                <span class="text-[#86868b]">接通率</span>
+                <span id="answerRate" class="text-[#1d1d1f] font-semibold tabular-nums">—</span>
+              </div>
+              <div class="flex justify-between items-baseline" title="接通的电话中转化为意向客户的比例,排除「无人接听」干扰,更能反映话术功力">
+                <span class="text-[#86868b]">接通转化</span>
+                <span id="answerToIntent" class="text-[#1d1d1f] font-semibold tabular-nums">—</span>
+              </div>
+              <div class="flex justify-between items-baseline" title="已登记客户中填写了「下次跟进点」的数量,代表后续动作待执行">
+                <span class="text-[#86868b]">待跟进</span>
+                <span id="followUpCount" class="text-[#1d1d1f] font-semibold tabular-nums">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 意向汇总 -->
+        <div class="bg-gradient-to-br from-[#34c759] to-[#28a745] rounded-[22px] p-5 text-white shadow-[0_8px_24px_-12px_rgba(52,199,89,0.45)]">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-[11px] uppercase tracking-[0.1em] text-white/85 font-semibold">意向客户</div>
+              <div id="intentCount" class="text-[28px] font-semibold mt-1 leading-none tracking-tight tabular-nums">0</div>
+            </div>
+            <div class="text-right">
+              <div class="text-[11px] uppercase tracking-[0.1em] text-white/85 font-semibold">转化率</div>
+              <div id="convRate" class="text-[24px] font-semibold mt-1 leading-none tracking-tight tabular-nums">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============== 屏 3：历史会话列表 ============== -->
+<div id="history" class="screen px-4 sm:px-8 py-6 sm:py-10">
+  <div class="max-w-5xl mx-auto">
+    <div class="flex items-end justify-between mb-6 sm:mb-8">
+      <div>
+        <h1 class="text-[22px] sm:text-[28px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">历史会话</h1>
+        <p id="historyCount" class="text-[12px] sm:text-[13px] text-[#86868b] mt-1.5">已存档 0 次会话</p>
+      </div>
+      <button onclick="showScreen('workspace')" class="text-[13px] text-[#86868b] hover:text-[#1d1d1f] flex items-center gap-1.5 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"/></svg>
+        关闭
+      </button>
+    </div>
+
+    <!-- 搜索条 -->
+    <div class="mb-4 sm:mb-5 relative">
+      <svg class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[#86868b] pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="7"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input id="historySearch" oninput="searchCustomers()" placeholder="搜索客户：姓名 / 公司 / 电话" class="w-full pl-10 pr-10 py-2.5 bg-white/80 backdrop-blur-xl rounded-full ring-1 ring-black/[0.06] text-[14px] text-[#1d1d1f] placeholder-[#86868b] focus:bg-white focus:ring-2 focus:ring-[#0071e3] outline-none transition-all">
+      <button id="historySearchClear" onclick="clearSearch()" type="button" aria-label="清除搜索" class="hidden absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#86868b]/30 hover:bg-[#86868b]/50 flex items-center justify-center transition-colors">
+        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div id="historyList" class="space-y-3"></div>
+  </div>
+</div>
+
+
+<!-- ============== 屏 4：跟进 ToDo ============== -->
+<div id="followups" class="screen px-4 sm:px-8 py-6 sm:py-10">
+  <div class="max-w-5xl mx-auto">
+    <!-- 头 -->
+    <div class="flex items-end justify-between mb-6 sm:mb-8 gap-3">
+      <div class="min-w-0">
+        <h1 class="text-[22px] sm:text-[28px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">跟进任务</h1>
+        <p id="followUpHeaderCount" class="text-[12px] sm:text-[13px] text-[#86868b] mt-1.5">共 0 项待执行</p>
+      </div>
+      <div class="flex gap-2 shrink-0">
+        <button onclick="exportFollowUpsImage()" class="bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#006edb] text-white text-[13px] font-medium px-4 sm:px-5 py-2.5 rounded-full transition-colors shadow-[0_4px_12px_-4px_rgba(0,113,227,0.5)] flex items-center gap-1.5 whitespace-nowrap">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          <span class="hidden sm:inline">导出图片</span>
+        </button>
+        <button onclick="showScreen('workspace')" class="text-[13px] text-[#86868b] hover:text-[#1d1d1f] flex items-center gap-1.5 transition-colors px-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"/></svg>
+          <span class="hidden sm:inline">关闭</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 可导出区域(截图范围) -->
+    <div id="followUpExportArea" class="bg-white/80 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] p-6 sm:p-8">
+      <div class="text-center pb-6 sm:pb-7 border-b border-black/[0.06]">
+        <h2 class="text-[24px] sm:text-[28px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">跟进任务清单</h2>
+        <p id="followUpExportSubtitle" class="text-[12px] sm:text-[13px] text-[#86868b] mt-2 tabular-nums">—</p>
+      </div>
+      <div id="followUpList" class="mt-6 sm:mt-7 space-y-3"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============== 意向客户登记表单（浮层，不属于 .screen 系统） ============== -->
+<div id="formModal" class="hidden fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60]">
+  <div class="bg-white/95 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] w-full max-w-2xl mx-4 max-h-[85vh] overflow-y-auto">
+    <!-- 弹窗头部 -->
+    <div class="px-7 py-5 border-b border-black/[0.06] flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-2xl rounded-t-[22px] z-10">
+      <div>
+        <h2 id="formTitle" class="text-[19px] font-semibold text-[#1d1d1f] tracking-tight">登记意向客户</h2>
+        <div class="flex items-center gap-2 mt-2">
+          <span class="text-[12px] text-[#86868b]">意向类型</span>
+          <span id="intentChip" class="bg-[#e7f9ee] text-[#28a745] text-[11px] font-semibold px-2.5 py-0.5 rounded-full">待报价</span>
+        </div>
+      </div>
+      <button onclick="closeForm()" aria-label="关闭" class="text-[#86868b] hover:text-[#1d1d1f] w-8 h-8 rounded-full hover:bg-black/[0.05] flex items-center justify-center transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- 表单内容 -->
+    <div class="px-7 py-6 space-y-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="formName" class="block text-[12px] font-semibold text-[#86868b] uppercase tracking-[0.06em] mb-2">客户姓名 <span class="text-[#ff3b30] normal-case">*</span></label>
+          <input id="formName" type="text" placeholder="如 张三" class="w-full px-3.5 py-2.5 bg-[#f5f5f7] border border-transparent rounded-[10px] text-[14px] text-[#1d1d1f] placeholder-[#86868b] focus:bg-white focus:border-[#0071e3] focus:ring-4 focus:ring-[#0071e3]/15 outline-none transition-all">
+        </div>
+        <div>
+          <label for="formPhone" class="block text-[12px] font-semibold text-[#86868b] uppercase tracking-[0.06em] mb-2">联系电话 <span class="text-[#ff3b30] normal-case">*</span></label>
+          <input id="formPhone" type="text" inputmode="numeric" placeholder="如 13800000000" oninput="checkPhoneDup()" class="w-full px-3.5 py-2.5 bg-[#f5f5f7] border border-transparent rounded-[10px] text-[14px] text-[#1d1d1f] placeholder-[#86868b] focus:bg-white focus:border-[#0071e3] focus:ring-4 focus:ring-[#0071e3]/15 outline-none transition-all tabular-nums">
+          <p class="text-[11px] text-[#ff9500] mt-1.5">非 11 位手机号会提示但不阻断</p>
+          <p id="phoneDupWarning" class="hidden text-[11px] text-[#ff3b30] mt-1 font-medium">⚠ <span id="phoneDupText"></span></p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="formCompany" class="block text-[12px] font-semibold text-[#86868b] uppercase tracking-[0.06em] mb-2">公司名称</label>
+          <input id="formCompany" type="text" placeholder="选填" class="w-full px-3.5 py-2.5 bg-[#f5f5f7] border border-transparent rounded-[10px] text-[14px] text-[#1d1d1f] placeholder-[#86868b] focus:bg-white focus:border-[#0071e3] focus:ring-4 focus:ring-[#0071e3]/15 outline-none transition-all">
+        </div>
+        <div>
+          <label for="formPosition" class="block text-[12px] font-semibold text-[#86868b] uppercase tracking-[0.06em] mb-2">职位</label>
+          <input id="formPosition" type="text" placeholder="选填" class="w-full px-3.5 py-2.5 bg-[#f5f5f7] border border-transparent rounded-[10px] text-[14px] text-[#1d1d1f] placeholder-[#86868b] focus:bg-white focus:border-[#0071e3] focus:ring-4 focus:ring-[#0071e3]/15 outline-none transition-all">
+        </div>
+      </div>
+
+      <div>
+        <label for="formRegion" class="block text-[12px] font-semibold text-[#86868b] uppercase tracking-[0.06em] mb-2">所在地区</label>
+        <input id="formRegion" type="text" placeholder="如 浙江省 杭州市" class="w-full px-3.5 py-2.5 bg-[#f5f5f7] border border-transparent rounded-[10px] text-[14px] text-[#1d1d1f] placeholder-[#86868b] focus:bg-white focus:border-[#0071e3] focus:ring-4 focus:ring-[#0071e3]/15 outline-none transition-all">
+      </div>
+
+      <div>
+        <label for="formPoints" class="block text-[12px] font-semibold text-[#86868b] uppercase tracking-[0.06em] mb-2">谈话要点</label>
+        <textarea id="formPoints" rows="4" placeholder="客户关注点、报价金额/区间、现有供应商情况等" class="w-full px-3.5 py-2.5 bg-[#f5f5f7] border border-transparent rounded-[10px] text-[14px] text-[#1d1d1f] placeholder-[#86868b] focus:bg-white focus:border-[#0071e3] focus:ring-4 focus:ring-[#0071e3]/15 outline-none resize-none transition-all leading-relaxed"></textarea>
+        <p class="text-[11px] text-[#86868b] mt-1.5">报价金额、产品诉求等统一在此自由记录</p>
+      </div>
+
+      <div>
+        <label for="formNext" class="block text-[12px] font-semibold text-[#86868b] uppercase tracking-[0.06em] mb-2">下次跟进点</label>
+        <input id="formNext" type="text" placeholder="如 周五前发送报价单" class="w-full px-3.5 py-2.5 bg-[#f5f5f7] border border-transparent rounded-[10px] text-[14px] text-[#1d1d1f] placeholder-[#86868b] focus:bg-white focus:border-[#0071e3] focus:ring-4 focus:ring-[#0071e3]/15 outline-none transition-all">
+      </div>
+
+      <div>
+        <label for="formNotes" class="block text-[12px] font-semibold text-[#86868b] uppercase tracking-[0.06em] mb-2">备注</label>
+        <textarea id="formNotes" rows="2" placeholder="选填" class="w-full px-3.5 py-2.5 bg-[#f5f5f7] border border-transparent rounded-[10px] text-[14px] text-[#1d1d1f] placeholder-[#86868b] focus:bg-white focus:border-[#0071e3] focus:ring-4 focus:ring-[#0071e3]/15 outline-none resize-none transition-all leading-relaxed"></textarea>
+      </div>
+    </div>
+
+    <!-- 底部按钮 -->
+    <div class="px-7 py-4 border-t border-black/[0.06] flex items-center gap-3 bg-[#fafafa]/80 backdrop-blur-xl rounded-b-[22px] sticky bottom-0">
+      <button id="formDelete" onclick="deleteCustomer()" class="hidden px-4 py-2 text-[#ff3b30] hover:bg-[#ff3b30]/10 rounded-full text-[13px] font-medium transition-colors">删除</button>
+      <span class="text-[11px] text-[#86868b] hidden sm:block ml-1">Esc 取消 · Ctrl + Enter 提交</span>
+      <div class="flex gap-2 ml-auto">
+        <button onclick="closeForm()" class="px-5 py-2 text-[#1d1d1f] hover:bg-black/[0.05] rounded-full text-[13px] font-medium transition-colors">取消</button>
+        <button id="formSubmit" onclick="submitForm()" class="px-5 py-2 bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#006edb] text-white rounded-full text-[13px] font-medium transition-colors shadow-[0_4px_12px_-4px_rgba(0,113,227,0.5)]">保存并继续</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============== 屏 3：本次汇总展示页 ============== -->
+<div id="summary" class="screen px-4 sm:px-8 py-6 sm:py-10">
+  <div class="max-w-5xl mx-auto">
+    <!-- 顶部操作栏 -->
+    <div class="flex items-end justify-between mb-6 sm:mb-8 no-print">
+      <div>
+        <h1 class="text-[22px] sm:text-[28px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">本次电销汇总</h1>
+        <p class="text-[12px] sm:text-[13px] text-[#86868b] mt-1.5">会话已结束 · 可导出报告</p>
+      </div>
+      <button id="summaryClose" onclick="closeSummary()" class="text-[13px] text-[#86868b] hover:text-[#1d1d1f] flex items-center gap-1.5 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"/></svg>
+        <span id="summaryCloseText">关闭</span>
+      </button>
+    </div>
+
+    <!-- 可导出区域（截图范围） -->
+    <div id="exportArea" class="bg-white/80 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] p-6 sm:p-10">
+      <!-- 报告标题 -->
+      <div class="text-center pb-6 sm:pb-8 border-b border-black/[0.06]">
+        <h2 class="text-[24px] sm:text-[32px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">本次电销汇总报告</h2>
+        <p id="sumRange" class="text-[12px] sm:text-[13px] text-[#86868b] mt-3 tabular-nums">—</p>
+      </div>
+
+      <!-- 3 个数据胶囊 -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-8 sm:my-10">
+        <div class="bg-[#f5f5f7] rounded-[20px] p-7 text-center">
+          <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold">总拨打</div>
+          <div id="sumTotal" class="text-[56px] font-semibold text-[#1d1d1f] mt-2 leading-none tracking-tight tabular-nums">0</div>
+          <div class="text-[12px] text-[#86868b] mt-3">通</div>
+        </div>
+        <div class="bg-[#eaf3ff] rounded-[20px] p-7 text-center">
+          <div class="text-[11px] uppercase tracking-[0.1em] text-[#0071e3] font-semibold">接通</div>
+          <div id="sumAnswered" class="text-[56px] font-semibold text-[#0071e3] mt-2 leading-none tracking-tight tabular-nums">0</div>
+          <div id="sumAnsRate" class="text-[12px] text-[#0071e3]/75 mt-3 tabular-nums">接通率 —</div>
+        </div>
+        <div class="bg-[#e7f9ee] rounded-[20px] p-7 text-center">
+          <div class="text-[11px] uppercase tracking-[0.1em] text-[#28a745] font-semibold">意向客户</div>
+          <div id="sumIntent" class="text-[56px] font-semibold text-[#28a745] mt-2 leading-none tracking-tight tabular-nums">0</div>
+          <div id="sumConvRate" class="text-[12px] text-[#28a745]/80 mt-3 tabular-nums">转化率 —</div>
+        </div>
+      </div>
+
+      <!-- 意向客户列表 -->
+      <div>
+        <div class="flex items-end justify-between mb-3">
+          <h3 class="text-[17px] font-semibold text-[#1d1d1f] tracking-tight">意向客户列表</h3>
+          <span id="customerCount" class="text-[12px] text-[#86868b] tabular-nums">共 0 人</span>
+        </div>
+        <div class="overflow-x-auto rounded-[16px] ring-1 ring-black/[0.06]">
+          <table class="w-full min-w-[560px]">
+            <thead class="bg-[#f5f5f7]">
+              <tr class="text-left text-[11px] font-semibold text-[#86868b] uppercase tracking-[0.08em]">
+                <th class="px-4 py-3 w-12">#</th>
+                <th class="px-4 py-3">姓名</th>
+                <th class="px-4 py-3">公司</th>
+                <th class="px-4 py-3">意向类型</th>
+                <th class="px-4 py-3">联系电话</th>
+              </tr>
+            </thead>
+            <tbody id="customerList" class="divide-y divide-black/[0.06] text-[13px] bg-white/60">
+              <tr><td colspan="5" class="px-4 py-10 text-center text-[#86868b] text-[13px]">本次会话尚未录入意向客户</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部操作按钮（截图范围外） -->
+    <div class="flex items-center justify-center gap-2 mt-6 sm:mt-8 flex-wrap no-print">
+      <button onclick="exportImage()" class="px-5 py-2.5 bg-white/80 backdrop-blur-xl ring-1 ring-black/[0.06] hover:bg-white text-[#1d1d1f] rounded-full text-[13px] font-medium flex items-center gap-2 transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        导出图片
+      </button>
+      <button onclick="exportExcel()" class="px-5 py-2.5 bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#006edb] text-white rounded-full text-[13px] font-medium shadow-[0_4px_12px_-4px_rgba(0,113,227,0.5)] flex items-center gap-2 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        导出意向客户 Excel
+      </button>
+      <button id="summaryStartNew" onclick="startNewSession()" class="px-5 py-2.5 text-[#1d1d1f] hover:bg-black/[0.05] rounded-full text-[13px] font-medium transition-colors">
+        关闭并开启新会话
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  const STORAGE_KEY = 'telesales-prototype-v1';
+  const STALE_MS = 12 * 60 * 60 * 1000; // 超过 12 小时的旧会话自动归档
+
+  const state = {
+    startedAt: Date.now(),
+    calls: [],      // { type, at }
+    customers: [],  // { intentType, name, phone, company, position, region, points, nextFollowUp, notes, at }
+    pendingIntent: null,
+    editing: null,  // null 表示新建,数字表示正在编辑 customers[index]
+    history: [],    // 归档:[{ id, startedAt, endedAt, calls, customers }],新到旧
+    viewing: null,  // null = 当前会话;否则为 history snapshot 对象(只读)
+  };
+
+  // ---------- 持久化 ----------
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      state.history = Array.isArray(saved.history) ? saved.history : [];
+      if (!saved.startedAt) return;
+      if (Date.now() - saved.startedAt > STALE_MS) {
+        // 过期会话:自动归档(若有数据),不恢复为当前会话
+        if (Array.isArray(saved.calls) && saved.calls.length > 0) {
+          archiveSnapshot({
+            id: saved.startedAt,
+            startedAt: saved.startedAt,
+            endedAt: saved.endedAt || (saved.calls[saved.calls.length - 1] || {}).at || saved.startedAt,
+            calls: saved.calls,
+            customers: Array.isArray(saved.customers) ? saved.customers : [],
+          });
+          saveState();
+        }
+        return;
+      }
+      state.startedAt = saved.startedAt;
+      state.calls = Array.isArray(saved.calls) ? saved.calls : [];
+      state.customers = Array.isArray(saved.customers) ? saved.customers : [];
+    } catch (e) { /* ignore */ }
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        startedAt: state.startedAt,
+        calls: state.calls,
+        customers: state.customers,
+        history: state.history,
+      }));
+    } catch (e) { /* ignore */ }
+  }
+
+  function archiveSnapshot(snap) {
+    const idx = state.history.findIndex(h => h.id === snap.id);
+    if (idx >= 0) state.history[idx] = snap;
+    else state.history.unshift(snap); // 最新在前
+  }
+
+  function snapshotCurrent() {
+    if (state.calls.length === 0) return;
+    archiveSnapshot({
+      id: state.startedAt,
+      startedAt: state.startedAt,
+      endedAt: Date.now(),
+      calls: state.calls.slice(),
+      customers: state.customers.slice(),
+    });
+  }
+
+  // ---------- 计算 ----------
+  function counts(calls) {
+    const cs = calls || state.calls;
+    return {
+      hangup: cs.filter(c => c.type === 'hangup').length,
+      unanswered: cs.filter(c => c.type === 'unanswered').length,
+      supplier: cs.filter(c => c.type === 'has_supplier').length,
+      quote: cs.filter(c => c.type === 'pending_quote').length,
+      total: cs.length,
+      intent: cs.filter(c => c.type === 'has_supplier' || c.type === 'pending_quote').length,
+      answered: cs.filter(c => c.type !== 'unanswered').length,
+    };
+  }
+
+  // ---------- 格式化 ----------
+  const pad = n => String(n).padStart(2, '0');
+  const fmtClock = ts => { const d = new Date(ts); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+  const fmtDate = ts => { const d = new Date(ts); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+
+  function fmtDuration(ms, { precise = false } = {}) {
+    if (!isFinite(ms) || ms < 0) ms = 0;
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    if (precise) {
+      if (h > 0) return `${h} 小时 ${m} 分`;
+      if (m > 0) return `${m} 分 ${s} 秒`;
+      return `${s} 秒`;
+    }
+    if (h > 0) return `${h} 小时 ${m} 分`;
+    if (m > 0) return `${m} 分钟`;
+    return '不到 1 分钟';
+  }
+
+  function fmtRelative(ts) {
+    const diff = Date.now() - ts;
+    if (diff < 10_000) return '刚刚';
+    if (diff < 60_000) return `${Math.floor(diff / 1000)} 秒前`;
+    const m = Math.floor(diff / 60_000);
+    if (m < 60) return `${m} 分钟前`;
+    const h = Math.floor(m / 60);
+    return `${h} 小时前`;
+  }
+
+  function escapeHTML(s) {
+    return String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+  }
+
+  function intentChipHTML(t) {
+    if (t === 'has_supplier') return '<span class="bg-[#eaf3ff] text-[#0071e3] text-[11px] font-semibold px-2.5 py-0.5 rounded-full">已有供应商</span>';
+    return '<span class="bg-[#e7f9ee] text-[#28a745] text-[11px] font-semibold px-2.5 py-0.5 rounded-full">待报价</span>';
+  }
+
+  function maskPhone(p) {
+    p = String(p);
+    if (p.length >= 11) return p.slice(0, 3) + '****' + p.slice(7);
+    return p;
+  }
+
+  // 同号查重:返回 null 或 { source, customer, sessionDate? }
+  // excludeAt 用于编辑模式,排除正在编辑的那条记录自己
+  function findDuplicatePhone(phone, excludeAt) {
+    if (!phone) return null;
+    // 当前会话
+    for (const c of state.customers) {
+      if (excludeAt != null && c.at === excludeAt) continue;
+      if (c.phone === phone) return { source: 'current', customer: c };
+    }
+    // 历史会话
+    for (const session of state.history) {
+      for (const cust of session.customers) {
+        if (cust.phone === phone) {
+          return { source: 'history', customer: cust, sessionDate: session.startedAt };
+        }
+      }
+    }
+    return null;
+  }
+
+  // 输入电话时实时检测,显示/隐藏弹窗内警告条
+  function checkPhoneDup() {
+    const phone = (document.getElementById('formPhone').value || '').trim();
+    const warn = document.getElementById('phoneDupWarning');
+    if (!warn) return;
+    if (phone.length < 7) { warn.classList.add('hidden'); return; }
+    const excludeAt = state.editing !== null && state.customers[state.editing] ? state.customers[state.editing].at : null;
+    const dup = findDuplicatePhone(phone, excludeAt);
+    if (!dup) { warn.classList.add('hidden'); return; }
+    const where = dup.source === 'current' ? '本次会话已登记' : `${fmtDate(dup.sessionDate)} 已登记`;
+    const company = dup.customer.company ? ' · ' + dup.customer.company : '';
+    setText('phoneDupText', `${where}为「${dup.customer.name}${company}」`);
+    warn.classList.remove('hidden');
+  }
+
+  function setText(id, v) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = v;
+  }
+
+  function setValue(id, v) {
+    const el = document.getElementById(id);
+    if (el) el.value = v == null ? '' : v;
+  }
+
+  function pulse(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('pulse');
+    void el.offsetWidth;
+    el.classList.add('pulse');
+  }
+
+  // ---------- iOS 风顶部 Toast ----------
+  function toast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.textContent = message;
+    container.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('toast-show'));
+    setTimeout(() => {
+      el.classList.remove('toast-show');
+      setTimeout(() => el.remove(), 280);
+    }, 2400);
+  }
+
+  // ---------- 工作台渲染 ----------
+  function renderWorkspace() {
+    const c = counts();
+    setText('totalCount', c.total);
+    setText('totalCountInline', c.total);
+    setText('hangupCount', c.hangup);
+    setText('unansweredCount', c.unanswered);
+    setText('supplierCount', c.supplier);
+    setText('quoteCount', c.quote);
+    setText('intentCount', c.intent);
+    setText('convRate', c.total ? Math.round(c.intent / c.total * 100) + '%' : '—');
+
+    const last = state.calls[state.calls.length - 1];
+    setText('lastCall', last ? `最近一次：${fmtRelative(last.at)}` : '尚未拨打');
+
+    // 营销质量指标
+    setText('answerRate', c.total ? `${Math.round(c.answered / c.total * 100)}%` : '—');
+    setText('answerToIntent', c.answered ? `${Math.round(c.intent / c.answered * 100)}%` : '—');
+    const followUps = state.customers.filter(cu => (cu.nextFollowUp || '').trim()).length;
+    setText('followUpCount', followUps);
+  }
+
+  function recordCall(type) {
+    state.calls.push({ type, at: Date.now() });
+    saveState();
+    renderWorkspace();
+    pulse('totalCount');
+  }
+
+  // ---------- 弹窗 ----------
+  function setIntentChip(intentType) {
+    const chip = document.getElementById('intentChip');
+    if (!chip) return;
+    if (intentType === 'has_supplier') {
+      chip.textContent = '已有供应商';
+      chip.className = 'bg-[#eaf3ff] text-[#0071e3] text-[11px] font-semibold px-2.5 py-0.5 rounded-full';
+    } else {
+      chip.textContent = '待报价';
+      chip.className = 'bg-[#e7f9ee] text-[#28a745] text-[11px] font-semibold px-2.5 py-0.5 rounded-full';
+    }
+  }
+
+  function openForm(intentType) {
+    state.editing = null;
+    state.pendingIntent = intentType;
+    setIntentChip(intentType);
+    setText('formTitle', '登记意向客户');
+    setText('formSubmit', '保存并继续');
+    document.getElementById('formDelete').classList.add('hidden');
+    document.getElementById('formModal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('formName').focus(), 80);
+  }
+
+  function editCustomer(index) {
+    const cust = state.customers[index];
+    if (!cust) return;
+    state.editing = index;
+    state.pendingIntent = cust.intentType;
+    setIntentChip(cust.intentType);
+    setValue('formName', cust.name);
+    setValue('formPhone', cust.phone);
+    setValue('formCompany', cust.company);
+    setValue('formPosition', cust.position);
+    setValue('formRegion', cust.region);
+    setValue('formPoints', cust.points);
+    setValue('formNext', cust.nextFollowUp);
+    setValue('formNotes', cust.notes);
+    setText('formTitle', '编辑意向客户');
+    setText('formSubmit', '保存修改');
+    document.getElementById('formDelete').classList.remove('hidden');
+    document.getElementById('formModal').classList.remove('hidden');
+    checkPhoneDup();
+    setTimeout(() => document.getElementById('formName').focus(), 80);
+  }
+
+  function closeForm() {
+    document.getElementById('formModal').classList.add('hidden');
+    ['formName', 'formPhone', 'formCompany', 'formPosition', 'formRegion', 'formPoints', 'formNext', 'formNotes'].forEach(id => setValue(id, ''));
+    state.pendingIntent = null;
+    state.editing = null;
+    setText('formTitle', '登记意向客户');
+    setText('formSubmit', '保存并继续');
+    document.getElementById('formDelete').classList.add('hidden');
+    document.getElementById('phoneDupWarning').classList.add('hidden');
+  }
+
+  function submitForm() {
+    const get = id => (document.getElementById(id).value || '').trim();
+    const name = get('formName');
+    const phone = get('formPhone');
+    if (!name) { toast('请填写客户姓名', 'warn'); document.getElementById('formName').focus(); return; }
+    if (!phone) { toast('请填写联系电话', 'warn'); document.getElementById('formPhone').focus(); return; }
+    if (!/^\d{11}$/.test(phone)) {
+      if (!confirm(`「${phone}」不是 11 位数字,确定保存吗?`)) return;
+    }
+
+    // 同号去重最终兜底(实时检测可能被快速提交跳过)
+    const excludeAt = state.editing !== null && state.customers[state.editing] ? state.customers[state.editing].at : null;
+    const dup = findDuplicatePhone(phone, excludeAt);
+    if (dup) {
+      const where = dup.source === 'current' ? '本次会话' : `${fmtDate(dup.sessionDate)} 的历史会话`;
+      const company = dup.customer.company ? ' · ' + dup.customer.company : '';
+      if (!confirm(`「${phone}」已在${where}登记为「${dup.customer.name}${company}」,是否仍要保存?`)) return;
+    }
+
+    if (state.editing !== null) {
+      // 编辑模式:替换 customers 条目,call 条目保持原 at
+      const idx = state.editing;
+      const existing = state.customers[idx];
+      if (!existing) { closeForm(); return; }
+      state.customers[idx] = {
+        ...existing,
+        name, phone,
+        company: get('formCompany'),
+        position: get('formPosition'),
+        region: get('formRegion'),
+        points: get('formPoints'),
+        nextFollowUp: get('formNext'),
+        notes: get('formNotes'),
+      };
+      saveState();
+      renderWorkspace();
+      renderSummary();
+      renderHistoryList();
+      renderFollowUps();
+      closeForm();
+      toast('已更新', 'success');
+    } else {
+      const at = Date.now();
+      state.customers.push({
+        intentType: state.pendingIntent,
+        name, phone,
+        company: get('formCompany'),
+        position: get('formPosition'),
+        region: get('formRegion'),
+        points: get('formPoints'),
+        nextFollowUp: get('formNext'),
+        notes: get('formNotes'),
+        at,
+      });
+      state.calls.push({ type: state.pendingIntent, at });
+      saveState();
+      renderWorkspace();
+      renderFollowUps();
+      pulse('totalCount');
+      closeForm();
+      toast('已记录意向客户', 'success');
+    }
+  }
+
+  function deleteCustomer() {
+    if (state.editing === null) return;
+    const cust = state.customers[state.editing];
+    if (!cust) return;
+    if (!confirm(`删除「${cust.name}」?同时会移除对应的拨打记录。`)) return;
+    // 同步移除对应 call 记录(按时间戳 + 类型精确匹配)
+    const callIdx = state.calls.findIndex(c => c.at === cust.at && c.type === cust.intentType);
+    if (callIdx >= 0) state.calls.splice(callIdx, 1);
+    state.customers.splice(state.editing, 1);
+    saveState();
+    renderWorkspace();
+    renderSummary();
+    renderHistoryList();
+    renderFollowUps();
+    closeForm();
+    toast('已删除', 'success');
+  }
+
+  // ---------- 会话流转 ----------
+  function endSession() {
+    if (state.calls.length === 0) {
+      toast('本次会话尚未拨打任何电话', 'warn');
+      return;
+    }
+    showScreen('summary');
+  }
+
+  function closeSummary() {
+    showScreen(state.viewing ? 'history' : 'workspace');
+  }
+
+  function renderSummary() {
+    const isView = !!state.viewing;
+    const ds = isView ? state.viewing : { startedAt: state.startedAt, endedAt: Date.now(), calls: state.calls, customers: state.customers };
+    const c = counts(ds.calls);
+    const start = ds.startedAt;
+    const end = ds.endedAt;
+    setText('sumTotal', c.total);
+    setText('sumAnswered', c.answered);
+    setText('sumAnsRate', c.total ? `接通率 ${Math.round(c.answered / c.total * 100)}%` : '接通率 —');
+    setText('sumIntent', c.intent);
+    setText('sumConvRate', c.total ? `转化率 ${Math.round(c.intent / c.total * 100)}%` : '转化率 —');
+    setText('sumRange', `${fmtDate(start)} · ${fmtClock(start)} — ${fmtClock(end)} · 共 ${fmtDuration(end - start)}`);
+
+    // 关闭按钮文案 + 「关闭并开启新会话」按钮在只读模式下隐藏
+    setText('summaryCloseText', isView ? '返回历史' : '关闭');
+    const startNewBtn = document.getElementById('summaryStartNew');
+    if (startNewBtn) startNewBtn.style.display = isView ? 'none' : '';
+
+    if (ds.customers.length === 0) {
+      setText('customerCount', '共 0 人');
+    } else if (isView) {
+      setText('customerCount', `共 ${ds.customers.length} 人 · 只读`);
+    } else {
+      setText('customerCount', `共 ${ds.customers.length} 人 · 点击行可编辑`);
+    }
+
+    const tbody = document.getElementById('customerList');
+    if (!tbody) return;
+    if (ds.customers.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-[#86868b] text-[13px]">本次会话尚未录入意向客户</td></tr>';
+      return;
+    }
+    tbody.innerHTML = ds.customers.map((cust, i) => `
+      <tr${isView ? '' : ` onclick="editCustomer(${i})"`} class="${isView ? '' : 'cursor-pointer hover:bg-[#f5f5f7] '}transition-colors">
+        <td class="px-4 py-3.5 text-[#86868b] tabular-nums">${i + 1}</td>
+        <td class="px-4 py-3.5 font-medium text-[#1d1d1f]">${escapeHTML(cust.name)}</td>
+        <td class="px-4 py-3.5 text-[#1d1d1f]">${escapeHTML(cust.company || '—')}</td>
+        <td class="px-4 py-3.5">${intentChipHTML(cust.intentType)}</td>
+        <td class="px-4 py-3.5 text-[#1d1d1f] tabular-nums">${escapeHTML(maskPhone(cust.phone))}</td>
+      </tr>
+    `).join('');
+  }
+
+  // ---------- 历史会话 ----------
+  // 根据搜索框状态分派:有内容显示搜索结果,无内容显示按日期排的会话卡
+  function renderHistoryList() {
+    const q = (document.getElementById('historySearch')?.value || '').trim();
+    const clearBtn = document.getElementById('historySearchClear');
+    if (clearBtn) clearBtn.classList.toggle('hidden', !q);
+    if (q) renderSearchResults(q);
+    else renderSessionCards();
+  }
+
+  function renderSessionCards() {
+    const list = document.getElementById('historyList');
+    const countEl = document.getElementById('historyCount');
+    if (!list) return;
+    if (countEl) countEl.textContent = `已存档 ${state.history.length} 次会话`;
+    if (state.history.length === 0) {
+      list.innerHTML = `<div class="bg-white/60 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] p-10 text-center"><div class="text-[14px] text-[#86868b]">还没有历史会话</div><div class="text-[12px] text-[#86868b]/70 mt-2">完成一通拨打后,点「关闭并开启新会话」即归档</div></div>`;
+      return;
+    }
+    list.innerHTML = state.history.map(h => {
+      const c = counts(h.calls);
+      return `
+        <div onclick="viewHistorySession(${h.id})" class="bg-white/80 backdrop-blur-2xl rounded-[20px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5 flex items-center justify-between gap-4 cursor-pointer hover:bg-white hover:shadow-[0_4px_14px_-4px_rgba(0,0,0,0.08)] transition-all">
+          <div class="min-w-0 flex-1">
+            <div class="text-[15px] font-medium text-[#1d1d1f] tabular-nums">${fmtDate(h.startedAt)}</div>
+            <div class="text-[12px] text-[#86868b] mt-1 tabular-nums">${fmtClock(h.startedAt)} — ${fmtClock(h.endedAt)} · 共 ${fmtDuration(h.endedAt - h.startedAt)}</div>
+          </div>
+          <div class="flex gap-5 sm:gap-6 text-center shrink-0">
+            <div>
+              <div class="text-[22px] sm:text-[24px] font-semibold text-[#1d1d1f] tabular-nums leading-none">${c.total}</div>
+              <div class="text-[10px] uppercase tracking-[0.08em] text-[#86868b] mt-1.5">拨打</div>
+            </div>
+            <div>
+              <div class="text-[22px] sm:text-[24px] font-semibold text-[#28a745] tabular-nums leading-none">${c.intent}</div>
+              <div class="text-[10px] uppercase tracking-[0.08em] text-[#86868b] mt-1.5">意向</div>
+            </div>
+            <div class="text-[#86868b] self-center">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function searchCustomers() {
+    renderHistoryList();
+  }
+
+  function clearSearch() {
+    setValue('historySearch', '');
+    renderHistoryList();
+  }
+
+  function matchesQuery(cust, q) {
+    const lower = q.toLowerCase();
+    return (cust.name || '').toLowerCase().includes(lower)
+      || (cust.company || '').toLowerCase().includes(lower)
+      || (cust.phone || '').includes(q);
+  }
+
+  function highlight(text, q) {
+    if (!text || !q) return escapeHTML(text || '');
+    const escaped = escapeHTML(text);
+    const lower = escaped.toLowerCase();
+    const lq = q.toLowerCase();
+    let result = '';
+    let i = 0;
+    while (i < escaped.length) {
+      const found = lower.indexOf(lq, i);
+      if (found < 0) { result += escaped.slice(i); break; }
+      result += escaped.slice(i, found);
+      result += `<mark class="bg-[#fff3a8] text-[#1d1d1f] rounded px-0.5">${escaped.slice(found, found + lq.length)}</mark>`;
+      i = found + lq.length;
+    }
+    return result;
+  }
+
+  function renderSearchResults(q) {
+    const list = document.getElementById('historyList');
+    const countEl = document.getElementById('historyCount');
+    if (!list) return;
+    const results = [];
+    state.customers.forEach((c, i) => {
+      if (matchesQuery(c, q)) results.push({ source: 'current', customer: c, index: i });
+    });
+    state.history.forEach(session => {
+      session.customers.forEach(c => {
+        if (matchesQuery(c, q)) results.push({ source: 'history', customer: c, sessionId: session.id });
+      });
+    });
+    if (countEl) countEl.textContent = results.length ? `匹配 ${results.length} 位客户` : `未匹配到客户`;
+    if (results.length === 0) {
+      list.innerHTML = `<div class="bg-white/60 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] p-10 text-center"><div class="text-[14px] text-[#86868b]">没有匹配「${escapeHTML(q)}」的客户</div><div class="text-[12px] text-[#86868b]/70 mt-2">试试更短的关键词,或者搜公司/电话</div></div>`;
+      return;
+    }
+    list.innerHTML = results.map(r => {
+      const c = r.customer;
+      const handler = r.source === 'current'
+        ? `editFromSearch(${r.index})`
+        : `viewHistorySession(${r.sessionId})`;
+      const whereChip = r.source === 'current'
+        ? `<span class="text-[11px] text-[#0071e3] font-semibold bg-[#eaf3ff] px-2 py-0.5 rounded-full whitespace-nowrap">本次</span>`
+        : (() => {
+            const sess = state.history.find(h => h.id === r.sessionId);
+            const date = sess ? fmtDate(sess.startedAt) : '历史';
+            return `<span class="text-[11px] text-[#86868b] font-medium tabular-nums whitespace-nowrap">${date}</span>`;
+          })();
+      return `
+        <div onclick="${handler}" class="bg-white/80 backdrop-blur-2xl rounded-[18px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-white hover:shadow-[0_4px_14px_-4px_rgba(0,0,0,0.08)] transition-all">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-[15px] font-medium text-[#1d1d1f]">${highlight(c.name, q)}</span>
+              ${intentChipHTML(c.intentType)}
+            </div>
+            <div class="text-[12px] text-[#86868b] mt-1 truncate">
+              ${highlight(c.company || '—', q)} · <span class="tabular-nums">${highlight(maskPhone(c.phone), q)}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 shrink-0">
+            ${whereChip}
+            <svg class="w-4 h-4 text-[#86868b]" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function editFromSearch(index) {
+    // 当前会话客户:直接打开编辑弹窗(不切屏,form 是浮层会盖在历史页之上)
+    editCustomer(index);
+  }
+
+  function viewHistorySession(id) {
+    const snap = state.history.find(h => h.id === id);
+    if (!snap) { toast('会话未找到', 'error'); return; }
+    state.viewing = snap;
+    showScreen('summary');
+  }
+
+  // ---------- 跟进 ToDo ----------
+  function collectFollowUpItems() {
+    const items = [];
+    state.customers.forEach(c => {
+      if ((c.nextFollowUp || '').trim()) {
+        items.push({ source: 'current', customer: c });
+      }
+    });
+    state.history.forEach(session => {
+      session.customers.forEach(c => {
+        if ((c.nextFollowUp || '').trim()) {
+          items.push({ source: 'history', customer: c, sessionId: session.id, sessionDate: session.startedAt });
+        }
+      });
+    });
+    // 最早登记的排前面(等最久的优先处理)
+    items.sort((a, b) => a.customer.at - b.customer.at);
+    return items;
+  }
+
+  function fmtAgo(ts) {
+    const diff = Date.now() - ts;
+    if (diff < 60_000) return '刚刚';
+    const h = Math.floor(diff / 3_600_000);
+    if (h === 0) return `${Math.floor(diff / 60_000)} 分钟前`;
+    if (h < 24) return `${h} 小时前`;
+    const d = Math.floor(diff / 86_400_000);
+    if (d < 7) return `${d} 天前`;
+    if (d < 30) return `${Math.floor(d / 7)} 周前`;
+    return `${Math.floor(d / 30)} 月前`;
+  }
+
+  function renderFollowUps() {
+    const items = collectFollowUpItems();
+    setText('followUpHeaderCount', items.length ? `共 ${items.length} 项待执行` : '暂无待办,可以歇会儿');
+    setText('followUpExportSubtitle', `导出于 ${fmtDate(Date.now())} · 共 ${items.length} 项`);
+
+    const list = document.getElementById('followUpList');
+    if (!list) return;
+
+    if (items.length === 0) {
+      list.innerHTML = `
+        <div class="bg-white/60 backdrop-blur-2xl rounded-[18px] ring-1 ring-black/[0.04] p-10 text-center">
+          <div class="text-[14px] text-[#86868b]">暂无待办跟进</div>
+          <div class="text-[12px] text-[#86868b]/70 mt-2">登记意向客户时填写「下次跟进点」即会出现在这里</div>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = items.map(item => {
+      const c = item.customer;
+      const sourceLabel = item.source === 'current'
+        ? '<span class="text-[11px] text-[#0071e3] font-semibold bg-[#eaf3ff] px-2 py-0.5 rounded-full whitespace-nowrap">本次会话</span>'
+        : `<span class="text-[11px] text-[#86868b] font-medium tabular-nums whitespace-nowrap">${fmtDate(item.sessionDate)}</span>`;
+      const sessionArg = item.sessionId !== undefined ? `, ${item.sessionId}` : '';
+      return `
+        <div class="bg-white rounded-[18px] ring-1 ring-black/[0.06] p-4 sm:p-5">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-[15px] font-semibold text-[#1d1d1f]">${escapeHTML(c.name)}</span>
+                ${intentChipHTML(c.intentType)}
+                ${sourceLabel}
+              </div>
+              <div class="text-[12px] text-[#86868b] mt-1 truncate">
+                ${escapeHTML(c.company || '—')} · <span class="tabular-nums">${escapeHTML(maskPhone(c.phone))}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <div class="text-[11px] text-[#86868b] tabular-nums whitespace-nowrap">${fmtAgo(c.at)}</div>
+              <button onclick="markFollowUpDone('${item.source}', ${c.at}${sessionArg})" class="no-export text-[12px] text-[#28a745] hover:bg-[#28a745]/10 active:bg-[#28a745]/15 px-2.5 py-1 rounded-full transition-colors flex items-center gap-1 font-medium">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                完成
+              </button>
+            </div>
+          </div>
+          <div class="mt-3 bg-[#fffbeb] rounded-[12px] p-3 border-l-[3px] border-[#ff9500]">
+            <div class="text-[11px] uppercase tracking-[0.08em] text-[#ff9500] font-semibold mb-1">下次跟进</div>
+            <div class="text-[13px] text-[#1d1d1f] leading-relaxed whitespace-pre-wrap">${escapeHTML(c.nextFollowUp)}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function markFollowUpDone(source, at, sessionId) {
+    if (!confirm('确认已完成此跟进?')) return;
+    if (source === 'current') {
+      const i = state.customers.findIndex(c => c.at === at);
+      if (i >= 0) state.customers[i].nextFollowUp = '';
+    } else {
+      const session = state.history.find(s => s.id === sessionId);
+      if (session) {
+        const i = session.customers.findIndex(c => c.at === at);
+        if (i >= 0) session.customers[i].nextFollowUp = '';
+      }
+    }
+    saveState();
+    renderFollowUps();
+    renderWorkspace();
+    toast('已标记完成', 'success');
+  }
+
+  function exportFollowUpsImage() {
+    if (typeof html2canvas === 'undefined') {
+      toast('图片库未加载,请检查网络', 'error');
+      return;
+    }
+    const items = collectFollowUpItems();
+    if (items.length === 0) {
+      toast('暂无待办跟进可导出', 'warn');
+      return;
+    }
+    const target = document.getElementById('followUpExportArea');
+    if (!target) return;
+    toast('正在生成图片…', 'info');
+    html2canvas(target, {
+      backgroundColor: '#ffffff',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      ignoreElements: el => el.classList && el.classList.contains('no-export'),
+    }).then(canvas => {
+      canvas.toBlob(blob => {
+        if (!blob) { toast('图片生成失败', 'error'); return; }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `跟进任务_${fmtDate(Date.now())}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        toast('已下载图片', 'success');
+      }, 'image/png');
+    }).catch(err => {
+      console.error(err);
+      toast('图片导出失败', 'error');
+    });
+  }
+
+  function startNewSession() {
+    if (state.calls.length > 0) {
+      if (!confirm('开启新会话将把本次归档到历史,然后清空当前数据。确定继续?')) return;
+    } else {
+      if (!confirm('开启新会话将清空当前数据,确定继续?')) return;
+    }
+    snapshotCurrent();
+    state.startedAt = Date.now();
+    state.calls = [];
+    state.customers = [];
+    saveState();
+    renderWorkspace();
+    showScreen('workspace');
+    toast('已开启新会话', 'success');
+  }
+
+  // ---------- 导出 ----------
+  function activeDataset() {
+    return state.viewing || { startedAt: state.startedAt, endedAt: Date.now(), calls: state.calls, customers: state.customers };
+  }
+
+  function exportExcel() {
+    const ds = activeDataset();
+    if (ds.customers.length === 0) {
+      toast('当前会话尚未录入意向客户', 'warn');
+      return;
+    }
+    if (typeof XLSX === 'undefined') {
+      toast('Excel 库未加载,请检查网络', 'error');
+      return;
+    }
+    const headers = ['#', '姓名', '联系电话', '公司', '职位', '所在地区', '意向类型', '谈话要点', '下次跟进点', '备注', '登记时间'];
+    const aoa = [headers, ...ds.customers.map((c, i) => [
+      i + 1, c.name, c.phone, c.company || '', c.position || '', c.region || '',
+      c.intentType === 'has_supplier' ? '已有供应商' : '待报价',
+      c.points || '', c.nextFollowUp || '', c.notes || '',
+      fmtDate(c.at) + ' ' + fmtClock(c.at),
+    ])];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    // 强制电话列(第 3 列, c=2)为文本类型,避免 Excel 转科学记数法
+    for (let i = 1; i <= ds.customers.length; i++) {
+      const ref = XLSX.utils.encode_cell({ r: i, c: 2 });
+      if (ws[ref]) { ws[ref].t = 's'; ws[ref].v = String(ws[ref].v); }
+    }
+    ws['!cols'] = [
+      { wch: 4 }, { wch: 10 }, { wch: 14 }, { wch: 18 }, { wch: 10 }, { wch: 14 },
+      { wch: 12 }, { wch: 40 }, { wch: 24 }, { wch: 24 }, { wch: 18 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '意向客户');
+    XLSX.writeFile(wb, `电销意向客户_${fmtDate(ds.startedAt)}.xlsx`);
+    toast('已下载 Excel', 'success');
+  }
+
+  function exportImage() {
+    if (typeof html2canvas === 'undefined') {
+      toast('图片库未加载,请检查网络', 'error');
+      return;
+    }
+    const target = document.getElementById('exportArea');
+    if (!target) return;
+    toast('正在生成图片…', 'info');
+    html2canvas(target, {
+      backgroundColor: '#ffffff',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    }).then(canvas => {
+      canvas.toBlob(blob => {
+        if (!blob) { toast('图片生成失败', 'error'); return; }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `电销汇总_${fmtDate(activeDataset().startedAt)}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        toast('已下载图片', 'success');
+      }, 'image/png');
+    }).catch(err => {
+      console.error(err);
+      toast('图片导出失败', 'error');
+    });
+  }
+
+  // ---------- 屏幕切换 ----------
+  function showScreen(id) {
+    // 离开 summary 时,如果是只读历史浏览模式,清掉 viewing
+    if (id !== 'summary') state.viewing = null;
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
+    if (id === 'workspace') renderWorkspace();
+    if (id === 'history') renderHistoryList();
+    if (id === 'summary') renderSummary();
+    if (id === 'followups') renderFollowUps();
+    document.getElementById('formModal').classList.add('hidden');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  // ---------- 键盘快捷键 ----------
+  document.addEventListener('keydown', e => {
+    const modalOpen = !document.getElementById('formModal').classList.contains('hidden');
+    if (e.target.matches('input, textarea')) {
+      if (e.key === 'Escape') { e.preventDefault(); closeForm(); }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitForm(); }
+      return;
+    }
+    if (modalOpen) {
+      if (e.key === 'Escape') { e.preventDefault(); closeForm(); }
+      return;
+    }
+    if (document.getElementById('workspace').classList.contains('active')) {
+      if (e.key === '1') { e.preventDefault(); recordCall('hangup'); }
+      else if (e.key === '2') { e.preventDefault(); recordCall('unanswered'); }
+      else if (e.key === '3') { e.preventDefault(); openForm('has_supplier'); }
+      else if (e.key === '4') { e.preventDefault(); openForm('pending_quote'); }
+    }
+  });
+
+  // ---------- 启动 ----------
+  loadState();
+  renderWorkspace();
+  // 每秒刷新一次"最近一次"的相对时间,体感跟手
+  setInterval(() => {
+    if (document.getElementById('workspace').classList.contains('active')) renderWorkspace();
+  }, 1000);
+
+  // ---------- PWA · 注册 Service Worker ----------
+  // 仅在 https 或 localhost 下生效;file:// 协议浏览器会拒绝注册(不影响功能)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => { /* 静默失败 */ });
+    });
+  }
+</script>
+
+</body>
+</html>

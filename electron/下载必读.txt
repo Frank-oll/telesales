@@ -1,0 +1,18 @@
+【Telesales 客户电销记录小工具 · macOS 版】
+
+下载链接(直接点,浏览器开始下载):
+https://github.com/Frank-oll/telesales/releases/download/v1.1.0/Telesales-1.1.0-arm64.dmg
+
+安装:
+1. 下载完成后双击 .dmg 文件
+2. 在弹出的窗口里,把左边的 App 图标拖到右边 Applications 文件夹
+3. 在启动台找到 Telesales 打开
+
+第一次打开会提示"无法验证开发者":
+- 别点"移到废纸篓"
+- 打开【系统设置 → 隐私与安全性】
+- 滚到最下面,会看到"已阻止使用 Telesales",右边点【仍要打开】
+- 再弹窗确认一次,以后就不会拦了
+
+注意:目前只支持 Apple M 芯片的 Mac。
+怎么看自己是不是?左上角苹果菜单 → 关于本机 → "芯片"那一行如果写 Apple M1/M2/M3/M4,就是。如果写 Intel,这版本装不上。

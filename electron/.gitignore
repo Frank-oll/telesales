@@ -1,0 +1,6 @@
+.DS_Store
+node_modules/
+dist/
+build/icon.icns
+build/icon.iconset/
+build/icon.png

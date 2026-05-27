@@ -1,0 +1,17 @@
+# 依赖
+node_modules/
+electron/node_modules/
+
+# 打包产物
+electron/dist/
+electron/app/
+
+# 系统/编辑器
+.DS_Store
+*.log
+*.swp
+.idea/
+.vscode/
+
+# 临时文件
+/tmp/

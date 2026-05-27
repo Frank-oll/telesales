@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /Users/winnielin/.claude/session-env/16d5386c-9891-4747-8744-9d80f5128a32 && ls -la \"/Users/winnielin/Documents/Frank AI/小工具/客户电销记录\")",
+      "Bash(/bin/ls \"/Users/winnielin/Documents/Frank AI/小工具/客户电销记录\")",
+      "Read(//Users/winnielin/Documents/**)",
+      "Bash(find . -type d -name \"*电销*\")"
+    ]
+  }
+}

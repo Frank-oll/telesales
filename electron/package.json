@@ -1,0 +1,56 @@
+{
+  "name": "telesales",
+  "version": "1.1.0",
+  "description": "iOS 风格电销外呼实时记录与汇总工具,本地存储,离线可用",
+  "main": "main.js",
+  "author": "Frank",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "sync": "mkdir -p app && cp ../prototype.html ../manifest.json ../icon.svg ../sw.js app/",
+    "icon": "bash build/make-icon.sh",
+    "start": "npm run sync && electron .",
+    "dist": "npm run sync && npm run icon && electron-builder --mac dmg --arm64",
+    "dist:intel": "npm run sync && npm run icon && electron-builder --mac dmg --x64",
+    "dist:both": "npm run sync && npm run icon && electron-builder --mac dmg --arm64 --x64"
+  },
+  "devDependencies": {
+    "electron": "^32.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.frankai.telesales",
+    "productName": "Telesales",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "app/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        { "target": "dmg" }
+      ],
+      "icon": "build/icon.icns",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "identity": null
+    },
+    "dmg": {
+      "title": "Telesales ${version}",
+      "icon": "build/icon.icns",
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "contents": [
+        { "x": 140, "y": 200, "type": "file" },
+        { "x": 400, "y": 200, "type": "link", "path": "/Applications" }
+      ]
+    }
+  }
+}

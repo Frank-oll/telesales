@@ -1,0 +1,17 @@
+{
+  "name": "客户电销记录",
+  "short_name": "电销记录",
+  "description": "iOS 风格电销外呼实时记录与汇总工具,数据本地存储,可离线使用",
+  "start_url": "./prototype.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f5f7",
+  "theme_color": "#0071e3",
+  "lang": "zh-CN",
+  "categories": ["productivity", "business"],
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
