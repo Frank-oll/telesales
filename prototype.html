@@ -1620,13 +1620,17 @@
 
   // ---------- 关于 / 版本 / 更新日志 ----------
   // 内嵌版本号(浏览器/PWA 兜底);Electron 下由 main.js 注入 window.__APP_VERSION(以 package.json 为准)
-  const APP_VERSION = "1.3.0";
+  const APP_VERSION = "1.3.1";
   function getAppVersion() { return (window.__APP_VERSION || APP_VERSION); }
 
   // 更新日志(最新在前);发版时由 release.sh 追加新版本条目
   const RELEASES = [
     // release.sh 发版时在下面这行锚点之后插入新版本条目(请勿删除锚点，且锚点须单独成行)
     // __RELEASES_INSERT__
+    { version: "1.3.1", items: [
+      "修复:升级后首次打开未弹「本次更新」",
+      "dmg 内置解锁助手+安装说明,首次安装免敲终端命令",
+    ] },
     { version: "1.3.0", items: [
       "新增「关于」页与版本更新提示",
       "关于页:检查更新 / 自动检查更新开关 / 导出诊断报告",
