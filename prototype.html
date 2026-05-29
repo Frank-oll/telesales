@@ -107,41 +107,52 @@
       </div>
     </div>
 
-    <!-- 主体：左·近期标记 + 中·标签录入 + 右·实时统计 -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-5 items-stretch">
-      <!-- 左侧：近期标记（实时滚动，紧凑面板，最多 4 条，超出滚动） -->
-      <div class="md:col-span-1 flex flex-col self-start">
-        <div class="flex items-baseline justify-between mb-3 px-1">
-          <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold">近期标记</div>
-          <div class="text-[12px] text-[#86868b] tabular-nums"><span id="recentMarkCount" class="text-[#1d1d1f] font-semibold">0</span> 次</div>
-        </div>
-        <div class="bg-white/80 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] overflow-hidden">
-          <div id="recentMarks" class="overflow-y-auto px-2 py-2 max-h-[216px]"></div>
-        </div>
-      </div>
+    <!-- 主体：左·录入(2)[按钮≈2/3 + 近期标记≈1/3] + 右·实时统计(1) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 items-stretch md:h-[calc(100vh-168px)] md:min-h-[520px]">
+      <!-- 左列：上·本通电话结果 + 下·近期标记 -->
+      <div class="md:col-span-2 flex flex-col gap-4 sm:gap-5 min-h-0">
 
-      <!-- 中间：标签录入区 -->
-      <div class="md:col-span-2 flex flex-col">
-        <div class="flex items-baseline justify-between mb-3 px-1">
-          <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold">本通电话结果</div>
+        <!-- 上：本通电话结果（≈2/3，按钮平分填满） -->
+        <div class="flex flex-col flex-[2] min-h-0">
+          <div class="flex items-baseline justify-between mb-3 px-1">
+            <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold">本通电话结果</div>
+          </div>
+          <div class="bg-white/80 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] overflow-hidden flex-1 flex flex-col">
+            <button onclick="recordCall('hangup')" class="tag-btn flex-1 flex items-center justify-center text-center min-h-[64px]">
+              <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">暂无磁铁需求</span>
+            </button>
+            <div class="h-px bg-black/[0.06] mx-6"></div>
+            <button onclick="recordCall('unanswered')" class="tag-btn flex-1 flex items-center justify-center text-center min-h-[64px]">
+              <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">未接</span>
+            </button>
+            <div class="h-px bg-black/[0.06] mx-6"></div>
+            <button onclick="openForm('has_supplier')" class="tag-btn flex-1 flex items-center justify-center text-center min-h-[64px]">
+              <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">已有供应商</span>
+            </button>
+            <div class="h-px bg-black/[0.06] mx-6"></div>
+            <button onclick="openForm('pending_quote')" class="tag-btn flex-1 flex items-center justify-center text-center min-h-[64px]">
+              <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">待报价</span>
+            </button>
+          </div>
         </div>
-        <div class="bg-white/80 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] overflow-hidden flex-1 flex flex-col justify-center">
-          <button onclick="recordCall('hangup')" class="tag-btn flex items-center justify-center text-center min-h-[58px] py-4">
-            <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">暂无磁铁需求</span>
-          </button>
-          <div class="h-px bg-black/[0.06] mx-6"></div>
-          <button onclick="recordCall('unanswered')" class="tag-btn flex items-center justify-center text-center min-h-[58px] py-4">
-            <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">未接</span>
-          </button>
-          <div class="h-px bg-black/[0.06] mx-6"></div>
-          <button onclick="openForm('has_supplier')" class="tag-btn flex items-center justify-center text-center min-h-[58px] py-4">
-            <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">已有供应商</span>
-          </button>
-          <div class="h-px bg-black/[0.06] mx-6"></div>
-          <button onclick="openForm('pending_quote')" class="tag-btn flex items-center justify-center text-center min-h-[58px] py-4">
-            <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">待报价</span>
-          </button>
+
+        <!-- 下：近期标记（≈1/3，缩略 + 展开悬浮窗） -->
+        <div class="flex flex-col flex-[1] min-h-0">
+          <div class="flex items-center justify-between mb-3 px-1">
+            <div class="flex items-baseline gap-2">
+              <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold">近期标记</div>
+              <div class="text-[12px] text-[#86868b] tabular-nums">共 <span id="recentMarkCount" class="text-[#1d1d1f] font-semibold">0</span> 次</div>
+            </div>
+            <button onclick="openMarksModal()" class="text-[12px] text-[#0071e3] hover:text-[#0077ed] font-medium flex items-center gap-1 px-2 py-1 rounded-full hover:bg-[#0071e3]/[0.08] transition-colors">
+              展开
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>
+            </button>
+          </div>
+          <div class="bg-white/80 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] overflow-hidden flex-1 flex flex-col min-h-0">
+            <div id="recentMarks" class="flex-1 overflow-y-auto px-2 py-2"></div>
+          </div>
         </div>
+
       </div>
 
       <!-- 右侧：实时统计 -->
@@ -371,6 +382,23 @@
         <button id="formSubmit" onclick="submitForm()" class="px-5 py-2 bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#006edb] text-white rounded-full text-[13px] font-medium transition-colors shadow-[0_4px_12px_-4px_rgba(0,113,227,0.5)]">保存并继续</button>
       </div>
     </div>
+  </div>
+</div>
+
+
+<!-- ============== 近期标记 · 展开悬浮窗 ============== -->
+<div id="marksModal" class="hidden fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[55]" onclick="if(event.target===this)closeMarksModal()">
+  <div class="bg-white/95 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
+    <div class="px-6 py-5 border-b border-black/[0.06] flex items-center justify-between">
+      <div>
+        <h2 class="text-[18px] font-semibold text-[#1d1d1f] tracking-tight">全部标记</h2>
+        <div class="text-[12px] text-[#86868b] mt-1">共 <span id="marksModalCount" class="tabular-nums">0</span> 条 · 可删除 / 编辑</div>
+      </div>
+      <button onclick="closeMarksModal()" aria-label="关闭" class="text-[#86868b] hover:text-[#1d1d1f] w-8 h-8 rounded-full hover:bg-black/[0.05] flex items-center justify-center transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="marksModalList" class="overflow-y-auto px-3 py-3 space-y-1"></div>
   </div>
 </div>
 
@@ -740,6 +768,83 @@
         </div>`;
     }).join('');
     container.scrollTop = 0;
+  }
+
+  // ---------- 近期标记 · 展开悬浮窗（全部标记，可删/可编辑） ----------
+  function openMarksModal() {
+    renderMarksModal();
+    document.getElementById('marksModal').classList.remove('hidden');
+  }
+
+  function closeMarksModal() {
+    document.getElementById('marksModal').classList.add('hidden');
+  }
+
+  function renderMarksModal() {
+    const list = document.getElementById('marksModalList');
+    if (!list) return;
+    setText('marksModalCount', state.calls.length);
+    if (state.calls.length === 0) {
+      list.innerHTML = `<div class="text-center text-[#86868b] text-[13px] py-12">还没有任何标记</div>`;
+      return;
+    }
+    list.innerHTML = state.calls.slice().reverse().map(call => {
+      const meta = typeMeta(call.type);
+      const isIntent = call.type === 'has_supplier' || call.type === 'pending_quote';
+      let nameHTML = '';
+      if (isIntent) {
+        const cust = state.customers.find(c => c.at === call.at);
+        if (cust && cust.name) nameHTML = ` <span class="text-[#86868b]">· ${escapeHTML(cust.name)}</span>`;
+      }
+      const editBtn = isIntent
+        ? `<button onclick="editMarkAt(${call.at})" class="text-[12px] text-[#0071e3] hover:bg-[#0071e3]/10 px-2.5 py-1 rounded-full font-medium transition-colors">编辑</button>`
+        : '';
+      return `
+        <div class="flex items-center justify-between gap-2 px-3 py-2.5 rounded-[12px] hover:bg-black/[0.02]">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-2 h-2 rounded-full shrink-0" style="background:${meta.color}"></span>
+            <div class="min-w-0">
+              <div class="text-[14px] text-[#1d1d1f] truncate">${meta.label}${nameHTML}</div>
+              <div class="text-[11px] text-[#86868b] tabular-nums">${fmtDate(call.at)} ${fmtClock(call.at)} · ${fmtRelative(call.at)}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            ${editBtn}
+            <button onclick="deleteMarkAt(${call.at})" class="text-[12px] text-[#ff3b30] hover:bg-[#ff3b30]/10 px-2.5 py-1 rounded-full font-medium transition-colors">删除</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function editMarkAt(at) {
+    const idx = state.customers.findIndex(c => c.at === at);
+    if (idx < 0) { toast('未找到对应客户', 'error'); return; }
+    closeMarksModal();
+    editCustomer(idx);
+  }
+
+  function deleteMarkAt(at) {
+    const ci = state.calls.findIndex(c => c.at === at);
+    if (ci < 0) return;
+    const call = state.calls[ci];
+    const isIntent = call.type === 'has_supplier' || call.type === 'pending_quote';
+    let label = typeMeta(call.type).label;
+    if (isIntent) {
+      const cust = state.customers.find(c => c.at === at);
+      if (cust && cust.name) label += `（${cust.name}）`;
+    }
+    if (!confirm(`删除标记「${label}」?${isIntent ? '将同时移除对应意向客户记录。' : ''}`)) return;
+    state.calls.splice(ci, 1);
+    if (isIntent) {
+      const ki = state.customers.findIndex(c => c.at === at);
+      if (ki >= 0) state.customers.splice(ki, 1);
+    }
+    saveState();
+    renderWorkspace();
+    renderRecentMarks(true);
+    renderMarksModal();
+    renderFollowUps();
+    toast('已删除标记', 'success');
   }
 
   // ---------- 弹窗 ----------
@@ -1413,6 +1518,7 @@
     if (id === 'summary') renderSummary();
     if (id === 'followups') renderFollowUps();
     document.getElementById('formModal').classList.add('hidden');
+    document.getElementById('marksModal').classList.add('hidden');
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
@@ -1422,6 +1528,11 @@
     if (e.target.matches('input, textarea')) {
       if (e.key === 'Escape') { e.preventDefault(); closeForm(); }
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitForm(); }
+      return;
+    }
+    const marksOpen = !document.getElementById('marksModal').classList.contains('hidden');
+    if (marksOpen) {
+      if (e.key === 'Escape') { e.preventDefault(); closeMarksModal(); }
       return;
     }
     if (modalOpen) {
