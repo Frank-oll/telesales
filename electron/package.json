@@ -46,31 +46,33 @@
     "dmg": {
       "title": "Telesales ${version}",
       "icon": "build/icon.icns",
+      "iconSize": 120,
+      "iconTextSize": 13,
       "window": {
         "width": 600,
-        "height": 470
+        "height": 450
       },
       "contents": [
         {
           "x": 150,
-          "y": 170,
+          "y": 150,
           "type": "file"
         },
         {
           "x": 450,
-          "y": 170,
+          "y": 150,
           "type": "link",
           "path": "/Applications"
         },
         {
           "x": 150,
-          "y": 330,
+          "y": 320,
           "type": "file",
-          "path": "build/dmg/解锁并打开 Telesales.command"
+          "path": "build/dmg/双击解锁并打开.command"
         },
         {
           "x": 450,
-          "y": 330,
+          "y": 320,
           "type": "file",
           "path": "build/dmg/安装说明（必看）.txt"
         }
