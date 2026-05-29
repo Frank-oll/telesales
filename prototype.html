@@ -1721,12 +1721,26 @@
     localStorage.setItem('telesales-seen-version', getAppVersion());
   }
 
+  // 本地是否已有业务数据(用于区分"老用户升级"与"全新安装")
+  function hasExistingData() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      const s = JSON.parse(raw);
+      return !!((Array.isArray(s.calls) && s.calls.length) ||
+                (Array.isArray(s.customers) && s.customers.length) ||
+                (Array.isArray(s.history) && s.history.length));
+    } catch (e) { return false; }
+  }
+
   // 升级后首次打开:确实从旧版升上来才弹(全新安装不弹)
   function maybeShowWhatsNew() {
     const cur = getAppVersion();
     const seen = localStorage.getItem('telesales-seen-version');
-    if (!seen) { localStorage.setItem('telesales-seen-version', cur); return; }
-    if (seen === cur) return;
+    if (seen === cur) return; // 已看过当前版本
+    // 无 seen 标记:可能是全新安装,也可能是从"没有本功能的旧版(≤1.2.0)"升级上来。
+    // 用是否已有业务数据兜底:有数据=老用户升级,应展示;一条数据都没有才算全新安装。
+    if (!seen && !hasExistingData()) { localStorage.setItem('telesales-seen-version', cur); return; }
     if (getRelease(cur)) openWhatsNew();
     else localStorage.setItem('telesales-seen-version', cur);
   }
