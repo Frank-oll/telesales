@@ -93,6 +93,10 @@
         <p class="text-[12px] sm:text-[13px] text-[#86868b] mt-1.5">本次会话进行中</p>
       </div>
       <div class="flex gap-2 shrink-0">
+        <button onclick="openAboutModal()" title="关于" aria-label="关于" class="bg-white/80 backdrop-blur-xl ring-1 ring-black/[0.08] hover:bg-white text-[#1d1d1f] w-[42px] sm:w-auto sm:px-4 py-2.5 rounded-full transition-colors flex items-center justify-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <span class="hidden sm:inline">关于</span>
+        </button>
         <button onclick="showScreen('followups')" class="bg-white/80 backdrop-blur-xl ring-1 ring-black/[0.08] hover:bg-white text-[#1d1d1f] text-[13px] font-medium px-3 sm:px-4 py-2.5 rounded-full transition-colors flex items-center gap-1.5">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           <span class="hidden sm:inline">跟进</span>
@@ -391,6 +395,88 @@
       </button>
     </div>
     <div id="marksModalList" class="overflow-y-auto px-3 py-3 space-y-1"></div>
+  </div>
+</div>
+
+
+<!-- ============== 关于（浮层） ============== -->
+<div id="aboutModal" class="hidden fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[58]" onclick="if(event.target===this)closeAboutModal()">
+  <div class="bg-[#f5f5f7] rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] w-full max-w-md mx-4 max-h-[88vh] overflow-y-auto">
+    <!-- 头部：图标 + 名称 + 版本 -->
+    <div class="relative pt-9 pb-6 px-6 text-center">
+      <button onclick="closeAboutModal()" aria-label="关闭" class="absolute top-4 right-4 text-[#86868b] hover:text-[#1d1d1f] w-8 h-8 rounded-full hover:bg-black/[0.05] flex items-center justify-center transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+      <img src="icon.svg" alt="" class="w-[72px] h-[72px] mx-auto rounded-[18px] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.25)]">
+      <h2 class="text-[20px] font-semibold text-[#1d1d1f] tracking-tight mt-4">客户电销记录</h2>
+      <p class="text-[13px] text-[#86868b] mt-1 tabular-nums">v<span id="aboutVersion">1.2.0</span></p>
+    </div>
+
+    <div class="px-4 sm:px-5 pb-5 space-y-3">
+      <!-- 更新组 -->
+      <div class="bg-white rounded-[16px] ring-1 ring-black/[0.04] overflow-hidden">
+        <button onclick="triggerCheckUpdate(this)" class="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-black/[0.02] transition-colors text-left">
+          <svg class="w-[18px] h-[18px] text-[#0071e3] shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          <span class="text-[14px] text-[#1d1d1f] flex-1">检查更新</span>
+          <span id="checkUpdateHint" class="text-[12px] text-[#86868b]"></span>
+        </button>
+        <div class="h-px bg-black/[0.06] mx-4"></div>
+        <div class="flex items-center gap-3 px-4 py-3.5">
+          <svg class="w-[18px] h-[18px] text-[#86868b] shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M4.2 4.2l4.3 4.3m7 7l4.3 4.3M1 12h6m6 0h6M4.2 19.8l4.3-4.3m7-7l4.3-4.3"/></svg>
+          <div class="flex-1 min-w-0">
+            <div class="text-[14px] text-[#1d1d1f]">自动检查更新</div>
+            <div class="text-[12px] text-[#86868b] mt-0.5">关闭后，仅在你手动点「检查更新」时才查找新版本</div>
+          </div>
+          <button id="autoCheckToggle" onclick="toggleAutoCheck()" role="switch" aria-checked="true" class="relative shrink-0 w-[46px] h-[28px] rounded-full transition-colors bg-[#34c759]">
+            <span class="absolute top-[3px] left-[3px] w-[22px] h-[22px] bg-white rounded-full shadow transition-transform translate-x-[18px]"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 信息组 -->
+      <div class="bg-white rounded-[16px] ring-1 ring-black/[0.04] overflow-hidden">
+        <button onclick="openWhatsNew()" class="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-black/[0.02] transition-colors text-left">
+          <svg class="w-[18px] h-[18px] text-[#ff9500] shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+          <span class="text-[14px] text-[#1d1d1f] flex-1">更新日志</span>
+          <svg class="w-4 h-4 text-[#c7c7cc]" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="h-px bg-black/[0.06] mx-4"></div>
+        <div class="flex items-center gap-3 px-4 py-3.5">
+          <svg class="w-[18px] h-[18px] text-[#86868b] shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span class="text-[14px] text-[#1d1d1f] flex-1">开发者</span>
+          <span class="text-[14px] text-[#86868b]">Frank</span>
+        </div>
+        <div class="h-px bg-black/[0.06] mx-4"></div>
+        <button onclick="openExternal('https://github.com/Frank-oll/telesales/issues')" class="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-black/[0.02] transition-colors text-left">
+          <svg class="w-[18px] h-[18px] text-[#86868b] shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v3M16 2v3M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>
+          <span class="text-[14px] text-[#1d1d1f] flex-1">报告 Bug</span>
+          <span class="text-[14px] text-[#86868b] flex items-center gap-1">GitHub <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
+        </button>
+      </div>
+
+      <!-- 诊断 -->
+      <button onclick="exportDiagnostics()" class="w-full bg-white rounded-[16px] ring-1 ring-black/[0.04] flex items-center gap-3 px-4 py-3.5 hover:bg-black/[0.02] transition-colors text-left">
+        <svg class="w-[18px] h-[18px] text-[#86868b] shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <span class="text-[14px] text-[#1d1d1f] flex-1">导出诊断报告</span>
+      </button>
+      <p class="text-[11px] text-[#86868b] text-center px-2">包含版本与运行环境，便于排查问题，不含个人数据。</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============== 本次更新 What's New（浮层） ============== -->
+<div id="whatsNewModal" class="hidden fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[59]" onclick="if(event.target===this)closeWhatsNew()">
+  <div class="bg-white rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] w-full max-w-md mx-4 max-h-[86vh] flex flex-col overflow-hidden">
+    <div class="pt-8 pb-5 px-6 text-center border-b border-black/[0.06]">
+      <div class="text-[28px]">🎉</div>
+      <h2 class="text-[20px] font-semibold text-[#1d1d1f] tracking-tight mt-2">本次更新</h2>
+      <p id="whatsNewVersion" class="text-[12px] text-[#86868b] mt-1 tabular-nums">v1.2.0</p>
+    </div>
+    <div id="whatsNewBody" class="overflow-y-auto px-6 py-5 space-y-3.5"></div>
+    <div class="px-6 py-4 border-t border-black/[0.06]">
+      <button onclick="closeWhatsNew()" class="w-full bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#006edb] text-white text-[14px] font-medium py-2.5 rounded-full transition-colors">开始使用</button>
+    </div>
   </div>
 </div>
 
@@ -1532,6 +1618,147 @@
     });
   }
 
+  // ---------- 关于 / 版本 / 更新日志 ----------
+  // 内嵌版本号(浏览器/PWA 兜底);Electron 下由 main.js 注入 window.__APP_VERSION(以 package.json 为准)
+  const APP_VERSION = '1.2.0';
+  function getAppVersion() { return (window.__APP_VERSION || APP_VERSION); }
+
+  // 更新日志(最新在前);发版时由 release.sh 追加新版本条目
+  const RELEASES = [
+    // release.sh 发版时在下面这行锚点之后插入新版本条目(请勿删除锚点，且锚点须单独成行)
+    // __RELEASES_INSERT__
+    { version: '1.2.0', items: [
+      '工作台改为两栏:左侧「按钮 + 近期标记」上下叠放,右侧统计黑/绿气泡并排,初次打开一屏看全',
+      '近期标记实时列表,点「展开」可查看全部标记并删除 / 编辑',
+      '历史会话支持多选合并,合并后可导出汇总图片与意向客户 Excel',
+      '历史会话支持删除(单条 + 多选批量)',
+      '新增「关于」页,以及升级后的更新内容提示',
+    ] },
+    { version: '1.1.0', items: [
+      '新增版本更新提醒',
+      '主工作台显示实时拨打计数',
+    ] },
+  ];
+  function getRelease(v) { return RELEASES.find(r => r.version === v); }
+
+  function openExternal(url) { window.open(url, '_blank'); }
+
+  // —— 关于浮层 ——
+  function renderAutoCheckToggle() {
+    const on = localStorage.getItem('telesales-auto-check') !== '0';
+    const t = document.getElementById('autoCheckToggle');
+    if (!t) return;
+    t.setAttribute('aria-checked', String(on));
+    t.classList.toggle('bg-[#34c759]', on);
+    t.classList.toggle('bg-[#e9e9ea]', !on);
+    const knob = t.querySelector('span');
+    if (knob) {
+      knob.classList.toggle('translate-x-[18px]', on);
+      knob.classList.toggle('translate-x-0', !on);
+    }
+  }
+
+  function toggleAutoCheck() {
+    const on = localStorage.getItem('telesales-auto-check') !== '0';
+    localStorage.setItem('telesales-auto-check', on ? '0' : '1');
+    renderAutoCheckToggle();
+    toast(on ? '已关闭自动检查更新' : '已开启自动检查更新', 'success');
+  }
+
+  function triggerCheckUpdate() {
+    if (window.electronAPI && typeof window.electronAPI.checkForUpdates === 'function') {
+      setText('checkUpdateHint', '检查中…');
+      window.electronAPI.checkForUpdates();
+      setTimeout(() => setText('checkUpdateHint', ''), 3000);
+    } else {
+      setText('checkUpdateHint', '请在桌面版检查');
+      setTimeout(() => setText('checkUpdateHint', ''), 3000);
+    }
+  }
+
+  function openAboutModal() {
+    setText('aboutVersion', getAppVersion());
+    renderAutoCheckToggle();
+    setText('checkUpdateHint', '');
+    document.getElementById('aboutModal').classList.remove('hidden');
+  }
+  function closeAboutModal() {
+    document.getElementById('aboutModal').classList.add('hidden');
+  }
+
+  // —— 本次更新 What's New ——
+  function renderWhatsNew() {
+    const cur = getAppVersion();
+    setText('whatsNewVersion', 'v' + cur);
+    const rel = getRelease(cur);
+    const body = document.getElementById('whatsNewBody');
+    if (!body) return;
+    if (!rel || !rel.items.length) {
+      body.innerHTML = '<div class="text-[13px] text-[#86868b] text-center py-6">本版本暂无更新说明</div>';
+      return;
+    }
+    body.innerHTML = rel.items.map(t => `
+      <div class="flex items-start gap-3">
+        <span class="mt-[7px] w-1.5 h-1.5 rounded-full bg-[#0071e3] shrink-0"></span>
+        <div class="text-[14px] text-[#1d1d1f] leading-relaxed">${escapeHTML(t)}</div>
+      </div>`).join('');
+  }
+
+  function openWhatsNew() {
+    renderWhatsNew();
+    // 从关于页打开时,关掉关于浮层避免叠太多层
+    closeAboutModal();
+    document.getElementById('whatsNewModal').classList.remove('hidden');
+  }
+  function closeWhatsNew() {
+    document.getElementById('whatsNewModal').classList.add('hidden');
+    // 记住已看过当前版本,下次升级前不再自动弹
+    localStorage.setItem('telesales-seen-version', getAppVersion());
+  }
+
+  // 升级后首次打开:确实从旧版升上来才弹(全新安装不弹)
+  function maybeShowWhatsNew() {
+    const cur = getAppVersion();
+    const seen = localStorage.getItem('telesales-seen-version');
+    if (!seen) { localStorage.setItem('telesales-seen-version', cur); return; }
+    if (seen === cur) return;
+    if (getRelease(cur)) openWhatsNew();
+    else localStorage.setItem('telesales-seen-version', cur);
+  }
+
+  // —— 诊断报告 ——
+  function exportDiagnostics() {
+    const cur = getAppVersion();
+    const c = counts();
+    const lines = [
+      '客户电销记录 · 诊断报告',
+      '生成时间: ' + new Date().toLocaleString(),
+      '版本: v' + cur,
+      '运行环境: ' + (window.electronAPI ? 'Electron 桌面版' : '浏览器 / PWA'),
+      '系统标识: ' + navigator.userAgent,
+      '界面语言: ' + navigator.language,
+      '自动检查更新: ' + (localStorage.getItem('telesales-auto-check') !== '0' ? '开' : '关'),
+      '——',
+      '当前会话: 拨打 ' + c.total + ' · 意向 ' + c.intent + ' · 接通 ' + c.answered,
+      '当前意向客户数: ' + state.customers.length,
+      '历史归档会话数: ' + state.history.length,
+    ];
+    try {
+      const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `电销诊断报告_${fmtDate(Date.now())}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast('已导出诊断报告', 'success');
+    } catch (e) {
+      toast('导出失败', 'error');
+    }
+  }
+
   // ---------- 屏幕切换 ----------
   function showScreen(id) {
     // 离开 summary 时,如果是只读历史浏览模式,清掉 viewing
@@ -1545,6 +1772,8 @@
     if (id === 'followups') renderFollowUps();
     document.getElementById('formModal').classList.add('hidden');
     document.getElementById('marksModal').classList.add('hidden');
+    document.getElementById('aboutModal').classList.add('hidden');
+    document.getElementById('whatsNewModal').classList.add('hidden');
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
@@ -1554,6 +1783,16 @@
     if (e.target.matches('input, textarea')) {
       if (e.key === 'Escape') { e.preventDefault(); closeForm(); }
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitForm(); }
+      return;
+    }
+    const whatsNewOpen = !document.getElementById('whatsNewModal').classList.contains('hidden');
+    if (whatsNewOpen) {
+      if (e.key === 'Escape') { e.preventDefault(); closeWhatsNew(); }
+      return;
+    }
+    const aboutOpen = !document.getElementById('aboutModal').classList.contains('hidden');
+    if (aboutOpen) {
+      if (e.key === 'Escape') { e.preventDefault(); closeAboutModal(); }
       return;
     }
     const marksOpen = !document.getElementById('marksModal').classList.contains('hidden');
@@ -1577,6 +1816,8 @@
   loadState();
   renderWorkspace();
   renderRecentMarks(true);
+  // 升级后首次打开,展示本次更新内容(全新安装不弹)
+  maybeShowWhatsNew();
   // 每秒刷新一次"最近一次"/"近期标记"的相对时间,体感跟手
   setInterval(() => {
     if (document.getElementById('workspace').classList.contains('active')) {

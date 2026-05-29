@@ -2,6 +2,20 @@
 
 本项目遵循 [SemVer](https://semver.org/lang/zh-CN/) 语义化版本。
 
+## [1.3.0] - 未发布
+
+### 新增
+
+- **「关于」页**(工作台顶栏 ⓘ 入口):参考 iOS 风格,展示 App 图标 / 名称 / 版本号,以及「检查更新」「自动检查更新」开关、「更新日志」、开发者、报告 Bug(GitHub)、导出诊断报告。
+- **升级后「本次更新」弹窗(What's New)**:确实从旧版升级才弹(全新安装不弹),展示本版要点;数据来自内嵌 `RELEASES`,版本号以 `package.json` 为准(`preload.js` 同步注入 `window.__APP_VERSION`,浏览器环境用内嵌 `APP_VERSION` 兜底)。
+- **「自动检查更新」开关**:存 `localStorage('telesales-auto-check')`,`main.js` 启动检查前读取该值决定是否自动检查(关闭后仅手动「检查更新」时才查)。
+- **导出诊断报告**:导出版本 / 运行环境 / 本地数据概况的文本,便于排查,不含个人数据。
+- **`release.sh` 一键发版脚本**:`./release.sh <版本号> "要点1" "要点2" …` 自动完成 同步版本号(`package.json` + `prototype.html` 的 `APP_VERSION`)→ 追加 `RELEASES` 更新日志条目 → 打包 dmg → 发 GitHub Release(含解锁助手)→ 更新「更新清单」Gist。
+
+### 技术
+
+- 新增 `electron/preload.js`(`contextBridge` 暴露 `electronAPI.checkForUpdates` + 同步注入版本号),`main.js` 增加对应 IPC(`telesales:check-updates` / `get-version`),`build.files` 纳入 `preload.js`。
+
 ## [1.2.0] - 2026-05-28
 
 ### 变更

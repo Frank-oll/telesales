@@ -214,6 +214,48 @@
 
 ---
 
+## ★ 迭代变更（v1.3.0）：关于页 + 更新提示 + 一键发版
+
+### F1. 「关于」页（参考 iOS 风格）
+
+- 入口：工作台顶栏新增 ⓘ「关于」按钮 → 居中浮层。
+- 头部：App 图标 + 「客户电销记录」+ 版本号（`v` + 版本）。
+- 更新组：
+  - **检查更新**：桌面端经 `preload` 暴露的 `electronAPI.checkForUpdates()` 触发主进程检查（复用现有横幅 / Toast）；浏览器/PWA 环境提示「请在桌面版检查」。
+  - **自动检查更新**（开关）：状态存 `localStorage('telesales-auto-check')`；`main.js` 启动时读取该值决定是否自动检查（关闭后仅手动检查）。
+- 信息组：更新日志（打开 What's New）、开发者（Frank）、报告 Bug（→ GitHub Issues）。
+- 底部：导出诊断报告（版本 / 运行环境 / 本地数据概况文本，不含个人数据）。
+- 外部链接本期仅放能确定的（报告 Bug、开发者）；官网 / 社区 / 反馈邮箱待补。
+
+### F2. 升级后「本次更新」弹窗（What's New）
+
+- 版本号来源：`preload.js` 同步注入 `window.__APP_VERSION`（以 `package.json` 为准）；浏览器环境用 `prototype.html` 内嵌 `APP_VERSION` 兜底（二者由 `release.sh` 保持一致）。
+- 数据：`prototype.html` 内嵌 `RELEASES`（版本 → 要点）。
+- 触发：启动比对 `localStorage('telesales-seen-version')`，**确实从旧版升级才弹**（全新安装不弹，静默记录当前版本）；关闭后写入当前版本。也可从关于页「更新日志」手动打开。
+
+### F3. 一键发版 `release.sh`
+
+`./release.sh <版本号> "要点1" "要点2" …` 依次完成：
+1. 同步版本号到 `electron/package.json` 与 `prototype.html` 的 `APP_VERSION`；
+2. 在 `RELEASES` 锚点 `// __RELEASES_INSERT__` 后追加新版本条目（即"本次更新"内容）；
+3. `npm run dist` 打包 arm64 dmg；
+4. `gh release create` 发 Release（附 dmg + 解锁助手 zip）；
+5. `gh gist edit` 更新「更新清单」`telesales-latest.json`（`latest` / `url` / `notes`）。
+
+完成后所有 ≥1.1.0 用户下次打开即收到更新提示。
+
+### F4. 本迭代验收
+
+| 编号 | 验收项 |
+|---|---|
+| AC-v13-01 | 工作台顶栏有「关于」入口，打开浮层展示图标 / 名称 / 版本号 |
+| AC-v13-02 | 关于页「自动检查更新」开关可切换并持久化；关闭后桌面端启动不自动检查、仅手动可查 |
+| AC-v13-03 | 关于页「检查更新」桌面端能触发主进程检查；「报告 Bug」打开 GitHub；「导出诊断报告」生成文本文件 |
+| AC-v13-04 | 从旧版升级后首次打开弹「本次更新」并展示本版要点；全新安装不弹；关闭后再开不再弹（同版本内） |
+| AC-v13-05 | `release.sh <版本> "要点"…` 能一键完成版本同步 / 更新日志注入 / 打包 / 发 Release / 更新 Gist，且 `RELEASES` 注入后仍是合法 JS、锚点保留可重复发版 |
+
+---
+
 ## 三、界面与模块设计
 
 ### 3.1 主工作台（核心界面）

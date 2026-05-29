@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, protocol, net, shell } = require('electron');
+const { app, BrowserWindow, Menu, protocol, net, shell, ipcMain } = require('electron');
 const path = require('path');
 const url = require('url');
 
@@ -39,6 +39,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
@@ -115,6 +116,7 @@ function createWindow() {
     `).catch(() => {});
     win.webContents.executeJavaScript(`
       (() => {
+        window.__APP_VERSION = ${JSON.stringify(app.getVersion())};
         if (!document.querySelector('.__electron-drag-bar')) {
           const bar = document.createElement('div');
           bar.className = '__electron-drag-bar';
@@ -165,8 +167,17 @@ function createWindow() {
       })();
     `).catch(() => {});
 
-    // 启动后延迟 2 秒自动检查一次,避免拖慢启动 + 等 service worker 注册完
-    setTimeout(() => checkForUpdates(win), 2000);
+    // 启动后延迟 2 秒自动检查一次,避免拖慢启动 + 等 service worker 注册完。
+    // 受「关于 → 自动检查更新」开关控制(localStorage telesales-auto-check;'0' 表示关闭)。
+    setTimeout(async () => {
+      let auto = true;
+      try {
+        auto = await win.webContents.executeJavaScript(
+          "localStorage.getItem('telesales-auto-check') !== '0'"
+        );
+      } catch (e) { /* 读不到就按默认开 */ }
+      if (auto) checkForUpdates(win);
+    }, 2000);
   });
 
   // 外链(CDN 文档之类)用系统浏览器打开,不在 app 里跳走
@@ -317,6 +328,14 @@ function buildMenu() {
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
+
+// 渲染进程(关于页)可调用的更新能力
+ipcMain.on('telesales:get-version-sync', (e) => { e.returnValue = app.getVersion(); });
+ipcMain.handle('telesales:get-version', () => app.getVersion());
+ipcMain.handle('telesales:check-updates', () => {
+  const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+  if (win) checkForUpdates(win, { manual: true });
+});
 
 app.whenReady().then(() => {
   registerAppProtocol();
