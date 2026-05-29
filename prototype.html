@@ -84,10 +84,10 @@
 <div id="toastContainer" class="toast-container"></div>
 
 <!-- ============== 屏 1：主工作台 ============== -->
-<div id="workspace" class="screen active px-4 sm:px-8 py-6 sm:py-10">
-  <div class="max-w-6xl mx-auto">
+<div id="workspace" class="screen active px-4 sm:px-8 py-6 sm:py-8 md:h-screen">
+  <div class="max-w-6xl mx-auto md:h-full md:flex md:flex-col">
     <!-- 顶部栏 -->
-    <div class="flex items-end justify-between mb-6 sm:mb-10 gap-3">
+    <div class="flex items-end justify-between mb-4 sm:mb-6 gap-3 shrink-0">
       <div class="min-w-0">
         <h1 class="text-[22px] sm:text-[28px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">客户电销记录</h1>
         <p class="text-[12px] sm:text-[13px] text-[#86868b] mt-1.5">本次会话进行中</p>
@@ -108,7 +108,7 @@
     </div>
 
     <!-- 主体：左·录入(2)[按钮≈2/3 + 近期标记≈1/3] + 右·实时统计(1) -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 items-stretch md:h-[calc(100vh-168px)] md:min-h-[520px]">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 items-stretch md:flex-1 md:min-h-0">
       <!-- 左列：上·本通电话结果 + 下·近期标记 -->
       <div class="md:col-span-2 flex flex-col gap-4 sm:gap-5 min-h-0">
 
@@ -156,67 +156,58 @@
       </div>
 
       <!-- 右侧：实时统计 -->
-      <div class="md:col-span-1 flex flex-col gap-3">
-        <!-- 主指标 -->
-        <div class="bg-[#1d1d1f] rounded-[22px] p-6 text-white shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)]">
-          <div class="text-[11px] uppercase tracking-[0.1em] text-white/55 font-semibold">本次累计拨打</div>
-          <div id="totalCount" class="text-[56px] font-semibold mt-1 leading-none tracking-tight tabular-nums">0</div>
-          <div id="lastCall" class="text-[12px] text-white/50 mt-3">尚未拨打</div>
+      <div class="md:col-span-1 flex flex-col gap-3 sm:gap-4 min-h-0">
+        <!-- 顶部：累计拨打(黑) + 意向客户(绿) 并排各占一半 -->
+        <div class="grid grid-cols-2 gap-3 sm:gap-4 shrink-0">
+          <!-- 累计拨打 -->
+          <div class="bg-[#1d1d1f] rounded-[20px] p-4 sm:p-5 text-white shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)] flex flex-col">
+            <div class="text-[11px] uppercase tracking-[0.08em] text-white/55 font-semibold">累计拨打</div>
+            <div id="totalCount" class="text-[40px] font-semibold mt-1 leading-none tracking-tight tabular-nums">0</div>
+            <div id="lastCall" class="text-[11px] text-white/50 mt-2 truncate">尚未拨打</div>
+          </div>
+          <!-- 意向客户 -->
+          <div class="bg-gradient-to-br from-[#34c759] to-[#28a745] rounded-[20px] p-4 sm:p-5 text-white shadow-[0_8px_24px_-12px_rgba(52,199,89,0.45)] flex flex-col">
+            <div class="text-[11px] uppercase tracking-[0.08em] text-white/85 font-semibold">意向客户</div>
+            <div id="intentCount" class="text-[40px] font-semibold mt-1 leading-none tracking-tight tabular-nums">0</div>
+            <div class="text-[11px] text-white/85 mt-2">转化率 <span id="convRate" class="font-semibold tabular-nums">—</span></div>
+          </div>
         </div>
 
-        <!-- 明细 + 时间（合并） -->
-        <div class="bg-white/80 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] overflow-hidden flex-1">
-          <div class="px-5 pt-5 pb-3">
-            <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold mb-3">本次明细</div>
-            <div class="space-y-2.5">
-              <div class="flex items-center justify-between">
-                <span class="text-[13px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-[#8e8e93]"></span>暂无磁铁需求</span>
-                <span id="hangupCount" class="text-[14px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-[13px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-[#ff9f0a]"></span>未接</span>
-                <span id="unansweredCount" class="text-[14px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-[13px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-[#0a84ff]"></span>已有供应商</span>
-                <span id="supplierCount" class="text-[14px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-[13px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-[#30d158]"></span>待报价</span>
-                <span id="quoteCount" class="text-[14px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
-              </div>
+        <!-- 明细 + 营销质量（填满剩余高度，两段均分撑高） -->
+        <div class="bg-white/80 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] overflow-hidden flex-1 min-h-0 flex flex-col">
+          <div class="flex-1 flex flex-col justify-evenly px-5 py-4 min-h-0">
+            <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold">本次明细</div>
+            <div class="flex items-center justify-between">
+              <span class="text-[14px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-2 h-2 rounded-full bg-[#8e8e93]"></span>暂无磁铁需求</span>
+              <span id="hangupCount" class="text-[15px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-[14px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-2 h-2 rounded-full bg-[#ff9f0a]"></span>未接</span>
+              <span id="unansweredCount" class="text-[15px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-[14px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-2 h-2 rounded-full bg-[#0a84ff]"></span>已有供应商</span>
+              <span id="supplierCount" class="text-[15px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-[14px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-2 h-2 rounded-full bg-[#30d158]"></span>待报价</span>
+              <span id="quoteCount" class="text-[15px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
             </div>
           </div>
           <div class="h-px bg-black/[0.06] mx-5"></div>
-          <div class="px-5 pt-3 pb-5">
-            <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold mb-3">营销质量</div>
-            <div class="space-y-2.5 text-[13px]">
-              <div class="flex justify-between items-baseline" title="本次接通的电话占总拨打的比例(总 − 未接)">
-                <span class="text-[#86868b]">接通率</span>
-                <span id="answerRate" class="text-[#1d1d1f] font-semibold tabular-nums">—</span>
-              </div>
-              <div class="flex justify-between items-baseline" title="接通的电话中转化为意向客户的比例,排除「无人接听」干扰,更能反映话术功力">
-                <span class="text-[#86868b]">接通转化</span>
-                <span id="answerToIntent" class="text-[#1d1d1f] font-semibold tabular-nums">—</span>
-              </div>
-              <div class="flex justify-between items-baseline" title="已登记客户中填写了「下次跟进点」的数量,代表后续动作待执行">
-                <span class="text-[#86868b]">待跟进</span>
-                <span id="followUpCount" class="text-[#1d1d1f] font-semibold tabular-nums">0</span>
-              </div>
+          <div class="flex-1 flex flex-col justify-evenly px-5 py-4 min-h-0">
+            <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold">营销质量</div>
+            <div class="flex justify-between items-baseline text-[14px]" title="本次接通的电话占总拨打的比例(总 − 未接)">
+              <span class="text-[#86868b]">接通率</span>
+              <span id="answerRate" class="text-[#1d1d1f] font-semibold tabular-nums">—</span>
             </div>
-          </div>
-        </div>
-
-        <!-- 意向汇总 -->
-        <div class="bg-gradient-to-br from-[#34c759] to-[#28a745] rounded-[22px] p-5 text-white shadow-[0_8px_24px_-12px_rgba(52,199,89,0.45)]">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="text-[11px] uppercase tracking-[0.1em] text-white/85 font-semibold">意向客户</div>
-              <div id="intentCount" class="text-[28px] font-semibold mt-1 leading-none tracking-tight tabular-nums">0</div>
+            <div class="flex justify-between items-baseline text-[14px]" title="接通的电话中转化为意向客户的比例,排除「无人接听」干扰,更能反映话术功力">
+              <span class="text-[#86868b]">接通转化</span>
+              <span id="answerToIntent" class="text-[#1d1d1f] font-semibold tabular-nums">—</span>
             </div>
-            <div class="text-right">
-              <div class="text-[11px] uppercase tracking-[0.1em] text-white/85 font-semibold">转化率</div>
-              <div id="convRate" class="text-[24px] font-semibold mt-1 leading-none tracking-tight tabular-nums">—</div>
+            <div class="flex justify-between items-baseline text-[14px]" title="已登记客户中填写了「下次跟进点」的数量,代表后续动作待执行">
+              <span class="text-[#86868b]">待跟进</span>
+              <span id="followUpCount" class="text-[#1d1d1f] font-semibold tabular-nums">0</span>
             </div>
           </div>
         </div>
