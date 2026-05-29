@@ -29,9 +29,9 @@ protocol.registerSchemesAsPrivileged([
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
-    height: 820,
+    height: 680,
     minWidth: 720,
-    minHeight: 560,
+    minHeight: 520,
     title: 'Telesales',
     backgroundColor: '#f5f5f7',
     titleBarStyle: isMac ? 'hiddenInset' : 'default',

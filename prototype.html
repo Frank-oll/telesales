@@ -60,6 +60,16 @@
   }
   #formModal:not(.hidden) > div { animation: modalIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
 
+  /* 近期标记:细滚动条 + 新条目入场 */
+  #recentMarks::-webkit-scrollbar { width: 6px; }
+  #recentMarks::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 3px; }
+  #recentMarks::-webkit-scrollbar-track { background: transparent; }
+  @keyframes markIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .mark-row-new { animation: markIn 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
   /* 打印导出:隐藏 dev nav 和操作按钮,保留汇总卡片 */
   @media print {
     body { background: #fff !important; }
@@ -74,10 +84,10 @@
 <div id="toastContainer" class="toast-container"></div>
 
 <!-- ============== 屏 1：主工作台 ============== -->
-<div id="workspace" class="screen active px-4 sm:px-8 py-6 sm:py-10">
-  <div class="max-w-6xl mx-auto">
+<div id="workspace" class="screen active px-4 sm:px-8 py-6 sm:py-8 md:h-screen">
+  <div class="max-w-6xl mx-auto md:h-full md:flex md:flex-col">
     <!-- 顶部栏 -->
-    <div class="flex items-end justify-between mb-6 sm:mb-10 gap-3">
+    <div class="flex items-end justify-between mb-4 sm:mb-6 gap-3 shrink-0">
       <div class="min-w-0">
         <h1 class="text-[22px] sm:text-[28px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">客户电销记录</h1>
         <p class="text-[12px] sm:text-[13px] text-[#86868b] mt-1.5">本次会话进行中</p>
@@ -97,95 +107,107 @@
       </div>
     </div>
 
-    <!-- 主体：左录入 + 右统计 -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 items-stretch">
-      <!-- 左侧：标签录入区 -->
-      <div class="md:col-span-2 flex flex-col">
-        <div class="flex items-baseline justify-between mb-3 px-1">
-          <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold">本通电话结果</div>
-          <div class="text-[12px] text-[#86868b] tabular-nums">已打 <span id="totalCountInline" class="text-[#1d1d1f] font-semibold">0</span> 个电话</div>
+    <!-- 主体：左·录入(2)[按钮≈2/3 + 近期标记≈1/3] + 右·实时统计(1) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 items-stretch md:flex-1 md:min-h-0">
+      <!-- 左列：上·本通电话结果 + 下·近期标记 -->
+      <div class="md:col-span-2 flex flex-col gap-4 sm:gap-5 min-h-0">
+
+        <!-- 上：本通电话结果（≈2/3，按钮平分填满） -->
+        <div class="flex flex-col flex-[2] min-h-0">
+          <div class="flex items-baseline justify-between mb-3 px-1">
+            <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold">本通电话结果</div>
+          </div>
+          <div class="bg-white/80 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] overflow-hidden flex-1 flex flex-col">
+            <button onclick="recordCall('hangup')" class="tag-btn flex-1 flex items-center justify-center text-center min-h-[64px]">
+              <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">暂无磁铁需求</span>
+            </button>
+            <div class="h-px bg-black/[0.06] mx-6"></div>
+            <button onclick="recordCall('unanswered')" class="tag-btn flex-1 flex items-center justify-center text-center min-h-[64px]">
+              <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">未接</span>
+            </button>
+            <div class="h-px bg-black/[0.06] mx-6"></div>
+            <button onclick="openForm('has_supplier')" class="tag-btn flex-1 flex items-center justify-center text-center min-h-[64px]">
+              <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">已有供应商</span>
+            </button>
+            <div class="h-px bg-black/[0.06] mx-6"></div>
+            <button onclick="openForm('pending_quote')" class="tag-btn flex-1 flex items-center justify-center text-center min-h-[64px]">
+              <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">待报价</span>
+            </button>
+          </div>
         </div>
-        <div class="bg-white/80 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] overflow-hidden flex-1 flex flex-col">
-          <button onclick="recordCall('hangup')" class="tag-btn flex-1 flex items-center justify-center text-center min-h-[96px]">
-            <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">暂无磁铁需求</span>
-          </button>
-          <div class="h-px bg-black/[0.06] mx-6"></div>
-          <button onclick="recordCall('unanswered')" class="tag-btn flex-1 flex items-center justify-center text-center min-h-[96px]">
-            <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">未接</span>
-          </button>
-          <div class="h-px bg-black/[0.06] mx-6"></div>
-          <button onclick="openForm('has_supplier')" class="tag-btn flex-1 flex items-center justify-center text-center min-h-[96px]">
-            <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">已有供应商</span>
-          </button>
-          <div class="h-px bg-black/[0.06] mx-6"></div>
-          <button onclick="openForm('pending_quote')" class="tag-btn flex-1 flex items-center justify-center text-center min-h-[96px]">
-            <span class="text-[17px] font-medium text-[#1d1d1f] tracking-tight">待报价</span>
-          </button>
+
+        <!-- 下：近期标记（≈1/3，缩略 + 展开悬浮窗） -->
+        <div class="flex flex-col flex-[1] min-h-0">
+          <div class="flex items-center justify-between mb-3 px-1">
+            <div class="flex items-baseline gap-2">
+              <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold">近期标记</div>
+              <div class="text-[12px] text-[#86868b] tabular-nums">共 <span id="recentMarkCount" class="text-[#1d1d1f] font-semibold">0</span> 次</div>
+            </div>
+            <button onclick="openMarksModal()" class="text-[12px] text-[#0071e3] hover:text-[#0077ed] font-medium flex items-center gap-1 px-2 py-1 rounded-full hover:bg-[#0071e3]/[0.08] transition-colors">
+              展开
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>
+            </button>
+          </div>
+          <div class="bg-white/80 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] overflow-hidden flex-1 flex flex-col min-h-0">
+            <div id="recentMarks" class="flex-1 overflow-y-auto px-2 py-2"></div>
+          </div>
         </div>
+
       </div>
 
       <!-- 右侧：实时统计 -->
-      <div class="md:col-span-1 flex flex-col gap-3">
-        <!-- 主指标 -->
-        <div class="bg-[#1d1d1f] rounded-[22px] p-6 text-white shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)]">
-          <div class="text-[11px] uppercase tracking-[0.1em] text-white/55 font-semibold">本次累计拨打</div>
-          <div id="totalCount" class="text-[56px] font-semibold mt-1 leading-none tracking-tight tabular-nums">0</div>
-          <div id="lastCall" class="text-[12px] text-white/50 mt-3">尚未拨打</div>
+      <div class="md:col-span-1 flex flex-col gap-3 sm:gap-4 min-h-0">
+        <!-- 顶部：累计拨打(黑) + 意向客户(绿) 并排各占一半 -->
+        <div class="grid grid-cols-2 gap-3 sm:gap-4 shrink-0">
+          <!-- 累计拨打 -->
+          <div class="bg-[#1d1d1f] rounded-[20px] p-4 sm:p-5 text-white shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)] flex flex-col">
+            <div class="text-[11px] uppercase tracking-[0.08em] text-white/55 font-semibold">累计拨打</div>
+            <div id="totalCount" class="text-[40px] font-semibold mt-1 leading-none tracking-tight tabular-nums">0</div>
+            <div id="lastCall" class="text-[11px] text-white/50 mt-2 truncate">尚未拨打</div>
+          </div>
+          <!-- 意向客户 -->
+          <div class="bg-gradient-to-br from-[#34c759] to-[#28a745] rounded-[20px] p-4 sm:p-5 text-white shadow-[0_8px_24px_-12px_rgba(52,199,89,0.45)] flex flex-col">
+            <div class="text-[11px] uppercase tracking-[0.08em] text-white/85 font-semibold">意向客户</div>
+            <div id="intentCount" class="text-[40px] font-semibold mt-1 leading-none tracking-tight tabular-nums">0</div>
+            <div class="text-[11px] text-white/85 mt-2">转化率 <span id="convRate" class="font-semibold tabular-nums">—</span></div>
+          </div>
         </div>
 
-        <!-- 明细 + 时间（合并） -->
-        <div class="bg-white/80 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] overflow-hidden flex-1">
-          <div class="px-5 pt-5 pb-3">
-            <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold mb-3">本次明细</div>
-            <div class="space-y-2.5">
-              <div class="flex items-center justify-between">
-                <span class="text-[13px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-[#8e8e93]"></span>暂无磁铁需求</span>
-                <span id="hangupCount" class="text-[14px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-[13px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-[#ff9f0a]"></span>未接</span>
-                <span id="unansweredCount" class="text-[14px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-[13px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-[#0a84ff]"></span>已有供应商</span>
-                <span id="supplierCount" class="text-[14px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-[13px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-[#30d158]"></span>待报价</span>
-                <span id="quoteCount" class="text-[14px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
-              </div>
+        <!-- 明细 + 营销质量（填满剩余高度，两段均分撑高） -->
+        <div class="bg-white/80 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] overflow-hidden flex-1 min-h-0 flex flex-col">
+          <div class="flex-1 flex flex-col justify-evenly px-5 py-4 min-h-0">
+            <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold">本次明细</div>
+            <div class="flex items-center justify-between">
+              <span class="text-[14px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-2 h-2 rounded-full bg-[#8e8e93]"></span>暂无磁铁需求</span>
+              <span id="hangupCount" class="text-[15px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-[14px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-2 h-2 rounded-full bg-[#ff9f0a]"></span>未接</span>
+              <span id="unansweredCount" class="text-[15px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-[14px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-2 h-2 rounded-full bg-[#0a84ff]"></span>已有供应商</span>
+              <span id="supplierCount" class="text-[15px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-[14px] text-[#1d1d1f] flex items-center gap-2.5"><span class="w-2 h-2 rounded-full bg-[#30d158]"></span>待报价</span>
+              <span id="quoteCount" class="text-[15px] font-semibold text-[#1d1d1f] tabular-nums">0</span>
             </div>
           </div>
           <div class="h-px bg-black/[0.06] mx-5"></div>
-          <div class="px-5 pt-3 pb-5">
-            <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold mb-3">营销质量</div>
-            <div class="space-y-2.5 text-[13px]">
-              <div class="flex justify-between items-baseline" title="本次接通的电话占总拨打的比例(总 − 未接)">
-                <span class="text-[#86868b]">接通率</span>
-                <span id="answerRate" class="text-[#1d1d1f] font-semibold tabular-nums">—</span>
-              </div>
-              <div class="flex justify-between items-baseline" title="接通的电话中转化为意向客户的比例,排除「无人接听」干扰,更能反映话术功力">
-                <span class="text-[#86868b]">接通转化</span>
-                <span id="answerToIntent" class="text-[#1d1d1f] font-semibold tabular-nums">—</span>
-              </div>
-              <div class="flex justify-between items-baseline" title="已登记客户中填写了「下次跟进点」的数量,代表后续动作待执行">
-                <span class="text-[#86868b]">待跟进</span>
-                <span id="followUpCount" class="text-[#1d1d1f] font-semibold tabular-nums">0</span>
-              </div>
+          <div class="flex-1 flex flex-col justify-evenly px-5 py-4 min-h-0">
+            <div class="text-[11px] uppercase tracking-[0.1em] text-[#86868b] font-semibold">营销质量</div>
+            <div class="flex justify-between items-baseline text-[14px]" title="本次接通的电话占总拨打的比例(总 − 未接)">
+              <span class="text-[#86868b]">接通率</span>
+              <span id="answerRate" class="text-[#1d1d1f] font-semibold tabular-nums">—</span>
             </div>
-          </div>
-        </div>
-
-        <!-- 意向汇总 -->
-        <div class="bg-gradient-to-br from-[#34c759] to-[#28a745] rounded-[22px] p-5 text-white shadow-[0_8px_24px_-12px_rgba(52,199,89,0.45)]">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="text-[11px] uppercase tracking-[0.1em] text-white/85 font-semibold">意向客户</div>
-              <div id="intentCount" class="text-[28px] font-semibold mt-1 leading-none tracking-tight tabular-nums">0</div>
+            <div class="flex justify-between items-baseline text-[14px]" title="接通的电话中转化为意向客户的比例,排除「无人接听」干扰,更能反映话术功力">
+              <span class="text-[#86868b]">接通转化</span>
+              <span id="answerToIntent" class="text-[#1d1d1f] font-semibold tabular-nums">—</span>
             </div>
-            <div class="text-right">
-              <div class="text-[11px] uppercase tracking-[0.1em] text-white/85 font-semibold">转化率</div>
-              <div id="convRate" class="text-[24px] font-semibold mt-1 leading-none tracking-tight tabular-nums">—</div>
+            <div class="flex justify-between items-baseline text-[14px]" title="已登记客户中填写了「下次跟进点」的数量,代表后续动作待执行">
+              <span class="text-[#86868b]">待跟进</span>
+              <span id="followUpCount" class="text-[#1d1d1f] font-semibold tabular-nums">0</span>
             </div>
           </div>
         </div>
@@ -198,15 +220,34 @@
 <!-- ============== 屏 3：历史会话列表 ============== -->
 <div id="history" class="screen px-4 sm:px-8 py-6 sm:py-10">
   <div class="max-w-5xl mx-auto">
-    <div class="flex items-end justify-between mb-6 sm:mb-8">
-      <div>
+    <div class="flex items-end justify-between mb-6 sm:mb-8 gap-3">
+      <div class="min-w-0">
         <h1 class="text-[22px] sm:text-[28px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">历史会话</h1>
         <p id="historyCount" class="text-[12px] sm:text-[13px] text-[#86868b] mt-1.5">已存档 0 次会话</p>
       </div>
-      <button onclick="showScreen('workspace')" class="text-[13px] text-[#86868b] hover:text-[#1d1d1f] flex items-center gap-1.5 transition-colors">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"/></svg>
-        关闭
-      </button>
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="historySelectToggle" onclick="toggleSelectMode()" class="bg-white/80 backdrop-blur-xl ring-1 ring-black/[0.08] hover:bg-white text-[#1d1d1f] text-[13px] font-medium px-3 sm:px-4 py-2.5 rounded-full transition-colors flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span id="historySelectToggleText">多选合并</span>
+        </button>
+        <button onclick="showScreen('workspace')" class="text-[13px] text-[#86868b] hover:text-[#1d1d1f] flex items-center gap-1.5 transition-colors px-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"/></svg>
+          关闭
+        </button>
+      </div>
+    </div>
+
+    <!-- 多选合并操作条 -->
+    <div id="historyMergeBar" class="hidden mb-4 sm:mb-5 bg-[#eaf3ff]/80 backdrop-blur-xl ring-1 ring-[#0071e3]/15 rounded-[16px] px-4 py-3 flex items-center justify-between gap-3">
+      <div class="text-[13px] text-[#1d1d1f] min-w-0">
+        已选 <span id="mergeSelCount" class="font-semibold tabular-nums">0</span> 个会话
+        <span class="text-[#86868b]">· 合并需 ≥2，删除 ≥1</span>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button onclick="clearSelection()" class="text-[13px] text-[#86868b] hover:text-[#1d1d1f] px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] transition-colors">清空</button>
+        <button id="deleteSelectedBtn" onclick="deleteSelectedSessions()" disabled class="bg-white ring-1 ring-[#ff3b30]/30 text-[#ff3b30] hover:bg-[#ff3b30]/[0.06] disabled:opacity-40 disabled:cursor-not-allowed text-[13px] font-medium px-4 py-1.5 rounded-full transition-colors">删除选中</button>
+        <button id="mergeBtn" onclick="mergeSelected()" disabled class="bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#006edb] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-medium px-4 py-1.5 rounded-full transition-colors">合并查看</button>
+      </div>
     </div>
 
     <!-- 搜索条 -->
@@ -337,6 +378,23 @@
 </div>
 
 
+<!-- ============== 近期标记 · 展开悬浮窗 ============== -->
+<div id="marksModal" class="hidden fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[55]" onclick="if(event.target===this)closeMarksModal()">
+  <div class="bg-white/95 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
+    <div class="px-6 py-5 border-b border-black/[0.06] flex items-center justify-between">
+      <div>
+        <h2 class="text-[18px] font-semibold text-[#1d1d1f] tracking-tight">全部标记</h2>
+        <div class="text-[12px] text-[#86868b] mt-1">共 <span id="marksModalCount" class="tabular-nums">0</span> 条 · 可删除 / 编辑</div>
+      </div>
+      <button onclick="closeMarksModal()" aria-label="关闭" class="text-[#86868b] hover:text-[#1d1d1f] w-8 h-8 rounded-full hover:bg-black/[0.05] flex items-center justify-center transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="marksModalList" class="overflow-y-auto px-3 py-3 space-y-1"></div>
+  </div>
+</div>
+
+
 <!-- ============== 屏 3：本次汇总展示页 ============== -->
 <div id="summary" class="screen px-4 sm:px-8 py-6 sm:py-10">
   <div class="max-w-5xl mx-auto">
@@ -356,7 +414,7 @@
     <div id="exportArea" class="bg-white/80 backdrop-blur-2xl rounded-[22px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] p-6 sm:p-10">
       <!-- 报告标题 -->
       <div class="text-center pb-6 sm:pb-8 border-b border-black/[0.06]">
-        <h2 class="text-[24px] sm:text-[32px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">本次电销汇总报告</h2>
+        <h2 id="sumTitle" class="text-[24px] sm:text-[32px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">本次电销汇总报告</h2>
         <p id="sumRange" class="text-[12px] sm:text-[13px] text-[#86868b] mt-3 tabular-nums">—</p>
       </div>
 
@@ -624,7 +682,6 @@
   function renderWorkspace() {
     const c = counts();
     setText('totalCount', c.total);
-    setText('totalCountInline', c.total);
     setText('hangupCount', c.hangup);
     setText('unansweredCount', c.unanswered);
     setText('supplierCount', c.supplier);
@@ -646,7 +703,140 @@
     state.calls.push({ type, at: Date.now() });
     saveState();
     renderWorkspace();
+    renderRecentMarks(true);
     pulse('totalCount');
+  }
+
+  // ---------- 近期标记（左栏实时滚动） ----------
+  function typeMeta(type) {
+    switch (type) {
+      case 'hangup': return { label: '暂无磁铁需求', color: '#8e8e93' };
+      case 'unanswered': return { label: '未接', color: '#ff9f0a' };
+      case 'has_supplier': return { label: '已有供应商', color: '#0a84ff' };
+      case 'pending_quote': return { label: '待报价', color: '#30d158' };
+      default: return { label: '标记', color: '#8e8e93' };
+    }
+  }
+
+  // rebuild=true：重建 DOM 并滚到顶部展示最新一条；
+  // rebuild=false：仅刷新相对时间，保留滚动位置（用于每秒心跳）
+  function renderRecentMarks(rebuild = false) {
+    const container = document.getElementById('recentMarks');
+    if (!container) return;
+    setText('recentMarkCount', state.calls.length);
+
+    if (!rebuild && state.calls.length > 0) {
+      container.querySelectorAll('.mark-time').forEach(el => {
+        el.textContent = fmtRelative(Number(el.dataset.at));
+      });
+      return;
+    }
+
+    if (state.calls.length === 0) {
+      container.innerHTML = `
+        <div class="text-center px-3 py-8">
+          <div class="text-[13px] text-[#86868b]">还没有标记</div>
+          <div class="text-[11px] text-[#86868b]/70 mt-1.5 leading-relaxed">开始拨打后<br>这里会实时记录每次标记</div>
+        </div>`;
+      return;
+    }
+
+    // 最新在最上，依次向下变旧
+    container.innerHTML = state.calls.slice().reverse().map((call, idx) => {
+      const meta = typeMeta(call.type);
+      let nameHTML = '';
+      if (call.type === 'has_supplier' || call.type === 'pending_quote') {
+        const cust = state.customers.find(c => c.at === call.at);
+        if (cust && cust.name) nameHTML = ` <span class="text-[#86868b]">· ${escapeHTML(cust.name)}</span>`;
+      }
+      const fresh = idx === 0 ? ' mark-row-new' : '';
+      return `
+        <div class="flex items-center justify-between gap-2 px-2.5 min-h-[50px] border-b border-black/[0.05] last:border-b-0 hover:bg-black/[0.02]${fresh}">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:${meta.color}"></span>
+            <span class="text-[13px] text-[#1d1d1f] truncate">${meta.label}${nameHTML}</span>
+          </div>
+          <span class="mark-time text-[11px] text-[#86868b] tabular-nums shrink-0" data-at="${call.at}">${fmtRelative(call.at)}</span>
+        </div>`;
+    }).join('');
+    container.scrollTop = 0;
+  }
+
+  // ---------- 近期标记 · 展开悬浮窗（全部标记，可删/可编辑） ----------
+  function openMarksModal() {
+    renderMarksModal();
+    document.getElementById('marksModal').classList.remove('hidden');
+  }
+
+  function closeMarksModal() {
+    document.getElementById('marksModal').classList.add('hidden');
+  }
+
+  function renderMarksModal() {
+    const list = document.getElementById('marksModalList');
+    if (!list) return;
+    setText('marksModalCount', state.calls.length);
+    if (state.calls.length === 0) {
+      list.innerHTML = `<div class="text-center text-[#86868b] text-[13px] py-12">还没有任何标记</div>`;
+      return;
+    }
+    list.innerHTML = state.calls.slice().reverse().map(call => {
+      const meta = typeMeta(call.type);
+      const isIntent = call.type === 'has_supplier' || call.type === 'pending_quote';
+      let nameHTML = '';
+      if (isIntent) {
+        const cust = state.customers.find(c => c.at === call.at);
+        if (cust && cust.name) nameHTML = ` <span class="text-[#86868b]">· ${escapeHTML(cust.name)}</span>`;
+      }
+      const editBtn = isIntent
+        ? `<button onclick="editMarkAt(${call.at})" class="text-[12px] text-[#0071e3] hover:bg-[#0071e3]/10 px-2.5 py-1 rounded-full font-medium transition-colors">编辑</button>`
+        : '';
+      return `
+        <div class="flex items-center justify-between gap-2 px-3 py-2.5 rounded-[12px] hover:bg-black/[0.02]">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-2 h-2 rounded-full shrink-0" style="background:${meta.color}"></span>
+            <div class="min-w-0">
+              <div class="text-[14px] text-[#1d1d1f] truncate">${meta.label}${nameHTML}</div>
+              <div class="text-[11px] text-[#86868b] tabular-nums">${fmtDate(call.at)} ${fmtClock(call.at)} · ${fmtRelative(call.at)}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            ${editBtn}
+            <button onclick="deleteMarkAt(${call.at})" class="text-[12px] text-[#ff3b30] hover:bg-[#ff3b30]/10 px-2.5 py-1 rounded-full font-medium transition-colors">删除</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function editMarkAt(at) {
+    const idx = state.customers.findIndex(c => c.at === at);
+    if (idx < 0) { toast('未找到对应客户', 'error'); return; }
+    closeMarksModal();
+    editCustomer(idx);
+  }
+
+  function deleteMarkAt(at) {
+    const ci = state.calls.findIndex(c => c.at === at);
+    if (ci < 0) return;
+    const call = state.calls[ci];
+    const isIntent = call.type === 'has_supplier' || call.type === 'pending_quote';
+    let label = typeMeta(call.type).label;
+    if (isIntent) {
+      const cust = state.customers.find(c => c.at === at);
+      if (cust && cust.name) label += `（${cust.name}）`;
+    }
+    if (!confirm(`删除标记「${label}」?${isIntent ? '将同时移除对应意向客户记录。' : ''}`)) return;
+    state.calls.splice(ci, 1);
+    if (isIntent) {
+      const ki = state.customers.findIndex(c => c.at === at);
+      if (ki >= 0) state.customers.splice(ki, 1);
+    }
+    saveState();
+    renderWorkspace();
+    renderRecentMarks(true);
+    renderMarksModal();
+    renderFollowUps();
+    toast('已删除标记', 'success');
   }
 
   // ---------- 弹窗 ----------
@@ -742,6 +932,7 @@
       };
       saveState();
       renderWorkspace();
+      renderRecentMarks(true);
       renderSummary();
       renderHistoryList();
       renderFollowUps();
@@ -763,6 +954,7 @@
       state.calls.push({ type: state.pendingIntent, at });
       saveState();
       renderWorkspace();
+      renderRecentMarks(true);
       renderFollowUps();
       pulse('totalCount');
       closeForm();
@@ -781,6 +973,7 @@
     state.customers.splice(state.editing, 1);
     saveState();
     renderWorkspace();
+    renderRecentMarks(true);
     renderSummary();
     renderHistoryList();
     renderFollowUps();
@@ -803,6 +996,7 @@
 
   function renderSummary() {
     const isView = !!state.viewing;
+    const isMerged = isView && !!state.viewing.merged;
     const ds = isView ? state.viewing : { startedAt: state.startedAt, endedAt: Date.now(), calls: state.calls, customers: state.customers };
     const c = counts(ds.calls);
     const start = ds.startedAt;
@@ -812,7 +1006,14 @@
     setText('sumAnsRate', c.total ? `接通率 ${Math.round(c.answered / c.total * 100)}%` : '接通率 —');
     setText('sumIntent', c.intent);
     setText('sumConvRate', c.total ? `转化率 ${Math.round(c.intent / c.total * 100)}%` : '转化率 —');
-    setText('sumRange', `${fmtDate(start)} · ${fmtClock(start)} — ${fmtClock(end)} · 共 ${fmtDuration(end - start)}`);
+    setText('sumTitle', isMerged ? '合并电销汇总报告' : '本次电销汇总报告');
+    if (isMerged) {
+      const sameDay = fmtDate(start) === fmtDate(end);
+      const range = sameDay ? fmtDate(start) : `${fmtDate(start)} ~ ${fmtDate(end)}`;
+      setText('sumRange', `合并 ${ds.mergedCount} 次会话 · ${range} · 意向 ${c.intent} 人`);
+    } else {
+      setText('sumRange', `${fmtDate(start)} · ${fmtClock(start)} — ${fmtClock(end)} · 共 ${fmtDuration(end - start)}`);
+    }
 
     // 关闭按钮文案 + 「关闭并开启新会话」按钮在只读模式下隐藏
     setText('summaryCloseText', isView ? '返回历史' : '关闭');
@@ -845,8 +1046,100 @@
   }
 
   // ---------- 历史会话 ----------
+  // 多选合并相关状态(非持久化,仅本次浏览有效)
+  let historySelectMode = false;
+  const historySelected = new Set();
+
+  function renderHistoryChrome() {
+    const toggleText = document.getElementById('historySelectToggleText');
+    const bar = document.getElementById('historyMergeBar');
+    const mergeBtn = document.getElementById('mergeBtn');
+    const deleteBtn = document.getElementById('deleteSelectedBtn');
+    if (toggleText) toggleText.textContent = historySelectMode ? '退出多选' : '多选 / 删除';
+    if (bar) bar.classList.toggle('hidden', !historySelectMode);
+    setText('mergeSelCount', historySelected.size);
+    if (mergeBtn) mergeBtn.disabled = historySelected.size < 2;
+    if (deleteBtn) deleteBtn.disabled = historySelected.size < 1;
+  }
+
+  function toggleSelectMode() {
+    historySelectMode = !historySelectMode;
+    if (!historySelectMode) {
+      historySelected.clear();
+    } else {
+      // 多选只作用于会话卡,进入多选时清空搜索,确保展示的是会话卡片
+      setValue('historySearch', '');
+    }
+    renderHistoryList();
+  }
+
+  function toggleSessionSelect(id) {
+    if (historySelected.has(id)) historySelected.delete(id);
+    else historySelected.add(id);
+    renderHistoryList();
+  }
+
+  function clearSelection() {
+    historySelected.clear();
+    renderHistoryList();
+  }
+
+  function mergeSelected() {
+    const sessions = state.history.filter(h => historySelected.has(h.id));
+    if (sessions.length < 2) { toast('请至少选择 2 个会话', 'warn'); return; }
+    sessions.sort((a, b) => a.startedAt - b.startedAt);
+    const calls = [];
+    const customers = [];
+    let minStart = Infinity, maxEnd = -Infinity;
+    sessions.forEach(s => {
+      minStart = Math.min(minStart, s.startedAt);
+      maxEnd = Math.max(maxEnd, s.endedAt);
+      (s.calls || []).forEach(call => calls.push(call));
+      (s.customers || []).forEach(cust => customers.push({ ...cust, _sessionStartedAt: s.startedAt }));
+    });
+    calls.sort((a, b) => a.at - b.at);
+    customers.sort((a, b) => a.at - b.at);
+    state.viewing = {
+      startedAt: minStart,
+      endedAt: maxEnd,
+      calls,
+      customers,
+      merged: true,
+      mergedCount: sessions.length,
+    };
+    showScreen('summary');
+  }
+
+  // 删除单个历史会话
+  function deleteHistorySession(id) {
+    const snap = state.history.find(h => h.id === id);
+    if (!snap) return;
+    const c = counts(snap.calls);
+    if (!confirm(`删除 ${fmtDate(snap.startedAt)} 这次会话?(${c.total} 通拨打 · ${c.intent} 意向)\n删除后不可恢复。`)) return;
+    state.history = state.history.filter(h => h.id !== id);
+    historySelected.delete(id);
+    saveState();
+    renderHistoryList();
+    renderFollowUps();
+    toast('已删除会话', 'success');
+  }
+
+  // 批量删除选中的历史会话
+  function deleteSelectedSessions() {
+    const ids = [...historySelected];
+    if (ids.length === 0) { toast('请先勾选要删除的会话', 'warn'); return; }
+    if (!confirm(`删除选中的 ${ids.length} 次会话?删除后不可恢复。`)) return;
+    state.history = state.history.filter(h => !historySelected.has(h.id));
+    historySelected.clear();
+    saveState();
+    renderHistoryList();
+    renderFollowUps();
+    toast(`已删除 ${ids.length} 次会话`, 'success');
+  }
+
   // 根据搜索框状态分派:有内容显示搜索结果,无内容显示按日期排的会话卡
   function renderHistoryList() {
+    renderHistoryChrome();
     const q = (document.getElementById('historySearch')?.value || '').trim();
     const clearBtn = document.getElementById('historySearchClear');
     if (clearBtn) clearBtn.classList.toggle('hidden', !q);
@@ -865,8 +1158,25 @@
     }
     list.innerHTML = state.history.map(h => {
       const c = counts(h.calls);
+      const selected = historySelected.has(h.id);
+      const clickHandler = historySelectMode ? `toggleSessionSelect(${h.id})` : `viewHistorySession(${h.id})`;
+      const boxCls = historySelectMode && selected
+        ? 'ring-2 ring-[#0071e3] bg-white'
+        : 'ring-1 ring-black/[0.04] bg-white/80 hover:bg-white';
+      const checkbox = historySelectMode
+        ? `<span class="shrink-0 w-5 h-5 rounded-full border-2 ${selected ? 'bg-[#0071e3] border-[#0071e3]' : 'border-[#c7c7cc]'} flex items-center justify-center transition-colors">${selected ? '<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</span>`
+        : '';
+      const tail = historySelectMode
+        ? ''
+        : `<div class="flex items-center gap-0.5 self-center">
+            <button onclick="event.stopPropagation();deleteHistorySession(${h.id})" title="删除此会话" class="text-[#c7c7cc] hover:text-[#ff3b30] hover:bg-[#ff3b30]/10 w-8 h-8 rounded-full flex items-center justify-center transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+            </button>
+            <svg class="w-4 h-4 text-[#86868b]" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>`;
       return `
-        <div onclick="viewHistorySession(${h.id})" class="bg-white/80 backdrop-blur-2xl rounded-[20px] ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5 flex items-center justify-between gap-4 cursor-pointer hover:bg-white hover:shadow-[0_4px_14px_-4px_rgba(0,0,0,0.08)] transition-all">
+        <div onclick="${clickHandler}" class="${boxCls} backdrop-blur-2xl rounded-[20px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5 flex items-center gap-4 cursor-pointer hover:shadow-[0_4px_14px_-4px_rgba(0,0,0,0.08)] transition-all">
+          ${checkbox}
           <div class="min-w-0 flex-1">
             <div class="text-[15px] font-medium text-[#1d1d1f] tabular-nums">${fmtDate(h.startedAt)}</div>
             <div class="text-[12px] text-[#86868b] mt-1 tabular-nums">${fmtClock(h.startedAt)} — ${fmtClock(h.endedAt)} · 共 ${fmtDuration(h.endedAt - h.startedAt)}</div>
@@ -880,9 +1190,7 @@
               <div class="text-[22px] sm:text-[24px] font-semibold text-[#28a745] tabular-nums leading-none">${c.intent}</div>
               <div class="text-[10px] uppercase tracking-[0.08em] text-[#86868b] mt-1.5">意向</div>
             </div>
-            <div class="text-[#86868b] self-center">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </div>
+            ${tail}
           </div>
         </div>
       `;
@@ -1156,13 +1464,19 @@
       toast('Excel 库未加载,请检查网络', 'error');
       return;
     }
+    const merged = !!ds.merged;
     const headers = ['#', '姓名', '联系电话', '公司', '职位', '所在地区', '意向类型', '谈话要点', '下次跟进点', '备注', '登记时间'];
-    const aoa = [headers, ...ds.customers.map((c, i) => [
-      i + 1, c.name, c.phone, c.company || '', c.position || '', c.region || '',
-      c.intentType === 'has_supplier' ? '已有供应商' : '待报价',
-      c.points || '', c.nextFollowUp || '', c.notes || '',
-      fmtDate(c.at) + ' ' + fmtClock(c.at),
-    ])];
+    if (merged) headers.push('来源会话日期');
+    const aoa = [headers, ...ds.customers.map((c, i) => {
+      const row = [
+        i + 1, c.name, c.phone, c.company || '', c.position || '', c.region || '',
+        c.intentType === 'has_supplier' ? '已有供应商' : '待报价',
+        c.points || '', c.nextFollowUp || '', c.notes || '',
+        fmtDate(c.at) + ' ' + fmtClock(c.at),
+      ];
+      if (merged) row.push(c._sessionStartedAt ? fmtDate(c._sessionStartedAt) : '');
+      return row;
+    })];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     // 强制电话列(第 3 列, c=2)为文本类型,避免 Excel 转科学记数法
     for (let i = 1; i <= ds.customers.length; i++) {
@@ -1173,9 +1487,13 @@
       { wch: 4 }, { wch: 10 }, { wch: 14 }, { wch: 18 }, { wch: 10 }, { wch: 14 },
       { wch: 12 }, { wch: 40 }, { wch: 24 }, { wch: 24 }, { wch: 18 },
     ];
+    if (merged) ws['!cols'].push({ wch: 14 });
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, '意向客户');
-    XLSX.writeFile(wb, `电销意向客户_${fmtDate(ds.startedAt)}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, merged ? '合并意向客户' : '意向客户');
+    const fname = merged
+      ? `电销合并意向客户_${fmtDate(ds.startedAt)}_${fmtDate(ds.endedAt)}.xlsx`
+      : `电销意向客户_${fmtDate(ds.startedAt)}.xlsx`;
+    XLSX.writeFile(wb, fname);
     toast('已下载 Excel', 'success');
   }
 
@@ -1196,9 +1514,12 @@
       canvas.toBlob(blob => {
         if (!blob) { toast('图片生成失败', 'error'); return; }
         const url = URL.createObjectURL(blob);
+        const ds = activeDataset();
         const a = document.createElement('a');
         a.href = url;
-        a.download = `电销汇总_${fmtDate(activeDataset().startedAt)}.png`;
+        a.download = ds.merged
+          ? `电销合并汇总_${fmtDate(ds.startedAt)}_${fmtDate(ds.endedAt)}.png`
+          : `电销汇总_${fmtDate(ds.startedAt)}.png`;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -1218,11 +1539,12 @@
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const el = document.getElementById(id);
     if (el) el.classList.add('active');
-    if (id === 'workspace') renderWorkspace();
+    if (id === 'workspace') { renderWorkspace(); renderRecentMarks(true); }
     if (id === 'history') renderHistoryList();
     if (id === 'summary') renderSummary();
     if (id === 'followups') renderFollowUps();
     document.getElementById('formModal').classList.add('hidden');
+    document.getElementById('marksModal').classList.add('hidden');
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
@@ -1232,6 +1554,11 @@
     if (e.target.matches('input, textarea')) {
       if (e.key === 'Escape') { e.preventDefault(); closeForm(); }
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitForm(); }
+      return;
+    }
+    const marksOpen = !document.getElementById('marksModal').classList.contains('hidden');
+    if (marksOpen) {
+      if (e.key === 'Escape') { e.preventDefault(); closeMarksModal(); }
       return;
     }
     if (modalOpen) {
@@ -1249,9 +1576,13 @@
   // ---------- 启动 ----------
   loadState();
   renderWorkspace();
-  // 每秒刷新一次"最近一次"的相对时间,体感跟手
+  renderRecentMarks(true);
+  // 每秒刷新一次"最近一次"/"近期标记"的相对时间,体感跟手
   setInterval(() => {
-    if (document.getElementById('workspace').classList.contains('active')) renderWorkspace();
+    if (document.getElementById('workspace').classList.contains('active')) {
+      renderWorkspace();
+      renderRecentMarks(false);
+    }
   }, 1000);
 
   // ---------- PWA · 注册 Service Worker ----------
