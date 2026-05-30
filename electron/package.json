@@ -46,6 +46,7 @@
     "dmg": {
       "title": "Telesales ${version}",
       "icon": "build/icon.icns",
+      "background": "build/background.png",
       "iconSize": 120,
       "iconTextSize": 13,
       "window": {
